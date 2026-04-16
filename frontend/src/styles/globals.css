@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bw-blue: #7c6ff7;
+  }
+
+  /* Bump the root font size so every rem-based Tailwind class scales up. */
+  html {
+    font-size: 17px;
+  }
+
+  body {
+    @apply bg-gray-950 text-gray-100;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus indicators — keyboard navigation (C1) */
+  *:focus-visible {
+    outline: 2px solid var(--color-bw-blue);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Styled scrollbars */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+  /* Checkbox accent */
+  input[type="checkbox"] { accent-color: var(--color-bw-blue); }
+}
+
+@layer utilities {
+  .shadow-mat-1 { box-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.6); }
+  .shadow-mat-2 { box-shadow: 0 3px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.6); }
+  .shadow-mat-3 { box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+
+  @keyframes bounceIn {
+    0%   { transform: scale(0.85) translateY(-8px); opacity: 0; }
+    60%  { transform: scale(1.03) translateY(0);    opacity: 1; }
+    100% { transform: scale(1);                     opacity: 1; }
+  }
+  .animate-bounce-once { animation: bounceIn 0.3s ease-out forwards; }
+
+  @keyframes pulseOnce {
+    0%, 100% { opacity: 1; }
+    40%       { opacity: 0.35; }
+  }
+  .animate-pulse-once { animation: pulseOnce 1s ease-in-out 1; }
+}
+
+@layer components {
+  /* Inputs */
+  .field {
+    @apply w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-base text-white
+           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bw-blue/60
+           focus:border-bw-blue transition-colors;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-base
+           font-medium transition-all active:scale-[0.97] disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-bw-blue text-white hover:bg-bw-blue/85;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .btn-secondary {
+    @apply btn bg-gray-800 text-gray-200 border border-gray-700 hover:bg-gray-750;
+  }
+  .btn-ghost {
+    @apply btn text-gray-400 hover:text-gray-100 hover:bg-gray-800;
+  }
+  .btn-danger {
+    @apply btn bg-bw-red/15 text-bw-red border border-bw-red/30 hover:bg-bw-red/25;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-gray-900 rounded-2xl border border-gray-800/60;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .card-elevated {
+    @apply bg-gray-800 rounded-2xl border border-gray-700/40;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  /* Section headings */
+  .section-title {
+    @apply text-base font-semibold text-gray-100 tracking-tight;
+  }
+
+  /* Table base */
+  .mat-table {
+    @apply w-full text-base;
+  }
+  .mat-table thead tr {
+    @apply border-b border-gray-800;
+  }
+  .mat-table thead th {
+    @apply px-3 py-2.5 text-sm font-medium text-gray-500 uppercase tracking-wider;
+  }
+  .mat-table tbody tr {
+    @apply border-b border-gray-800/60 hover:bg-gray-800/40 transition-colors;
+  }
+  .mat-table tbody td {
+    @apply px-3 py-2.5;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+}

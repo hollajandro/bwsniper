@@ -1,0 +1,161 @@
+"""
+backend/app/main.py — FastAPI application factory.
+
+Startup:
+    1. Create database tables
+    2. Restart workers for any non-terminal snipes
+    3. Include all routers
+
+Shutdown:
+    1. Stop all auction workers gracefully
+"""
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from .api.auth import limiter
+from .db.database import init_db, SessionLocal
+from .api.router import api_router, ws_router
+from .config import CORS_ORIGINS
+from .services.snipe_service import restart_active_snipes
+from .services.worker_pool import pool
+from .services import keyword_watcher
+from .websocket.manager import ws_manager
+
+
+async def _cleanup_loop():
+    """Periodically remove finished AuctionWorker threads from the pool,
+    purge expired/revoked refresh tokens, and proactively refresh BW sessions."""
+    import asyncio as _asyncio
+    import logging as _logging
+    from datetime import datetime, timezone
+    from .db.models import RefreshToken, BuyWanderLogin
+    from .services.auth_service import reauth_bw_login
+
+    _logger = _logging.getLogger(__name__)
+    _purge_counter = 0
+    _session_refresh_counter = 0
+
+    while True:
+        await _asyncio.sleep(60)
+        pool.cleanup_dead()
+        _purge_counter += 1
+        _session_refresh_counter += 1
+
+        if _purge_counter >= 5:  # every 5 minutes
+            _purge_counter = 0
+            try:
+                db = SessionLocal()
+                now = datetime.now(timezone.utc)
+                db.query(RefreshToken).filter(
+                    (RefreshToken.expires_at < now) | (RefreshToken.revoked == True)  # noqa: E712
+                ).delete(synchronize_session=False)
+                db.commit()
+            except Exception:
+                pass
+            finally:
+                db.close()
+
+        if _session_refresh_counter >= 1200:  # every 20 hours (1200 × 60 s)
+            _session_refresh_counter = 0
+            db = SessionLocal()
+            try:
+                logins = db.query(BuyWanderLogin).filter(
+                    BuyWanderLogin.is_active == True  # noqa: E712
+                ).all()
+            except Exception as ex:
+                _logger.warning("Failed to query logins for session refresh: %s", ex)
+                logins = []
+            finally:
+                db.close()
+
+            # Refresh each login independently — one failure doesn't affect others.
+            for login in logins:
+                db = SessionLocal()
+                try:
+                    reauth_bw_login(login, db)
+                    _logger.info("Session refreshed for %s", login.bw_email)
+                except Exception as ex:
+                    _logger.warning("Proactive session refresh failed for %s: %s",
+                                    login.bw_email, ex)
+                finally:
+                    db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio as _asyncio
+
+    # ── Startup ──────────────────────────────────────────────────────────────
+    init_db()
+
+    # Give the WebSocket manager a reference to the running event loop so that
+    # background AuctionWorker threads can safely schedule WS broadcasts.
+    ws_manager.set_loop(_asyncio.get_running_loop())
+
+    # Restart workers for any snipes that were active before shutdown
+    db = SessionLocal()
+    try:
+        restart_active_snipes(db, ws_manager=ws_manager)
+    finally:
+        db.close()
+
+    # Background task: prune dead worker threads from the pool every 60s
+    cleanup_task = _asyncio.create_task(_cleanup_loop())
+
+    # Start keyword watch scanner
+    keyword_watcher.start()
+
+    yield
+
+    # ── Shutdown ─────────────────────────────────────────────────────────────
+    cleanup_task.cancel()
+    keyword_watcher.stop()
+    stopped = pool.stop_all()
+    if stopped:
+        print(f"Stopped {stopped} auction worker(s).")
+
+
+app = FastAPI(
+    title="BuyWander Sniper API",
+    version="2.0.0",
+    lifespan=lifespan,
+)
+
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS — controlled via CORS_ORIGINS env var (see config.py)
+if "*" in CORS_ORIGINS:
+    raise ValueError(
+        "CORS_ORIGINS contains '*' (wildcard). "
+        "Wildcard origins are incompatible with allow_credentials=True. "
+        "Set explicit origins in CORS_ORIGINS instead."
+    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router)
+app.include_router(ws_router)
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "active_workers": pool.active_count(),
+        "ws_connections": ws_manager.connection_count(),
+    }

@@ -1,0 +1,1 @@
+"""BuyWander Sniper — FastAPI backend."""

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Runtime data (mounted as a volume in production)
+data/
+
+# Dev/test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Secrets / env
+.env
+*.env
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore

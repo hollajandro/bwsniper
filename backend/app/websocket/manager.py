@@ -38,11 +38,17 @@ class ConnectionManager:
         self._connections[user_id].add(ws)
 
     def disconnect(self, ws: WebSocket, user_id: str):
+        """Remove and close a WebSocket connection."""
         conns = self._connections.get(user_id)
         if conns:
             conns.discard(ws)
             if not conns:
                 del self._connections[user_id]
+        # Explicitly close the socket to prevent leaks
+        try:
+            asyncio.run_coroutine_threadsafe(ws.close(), self._loop)
+        except Exception:
+            pass  # Socket may already be closed or loop unavailable
 
     async def _send_json(self, ws: WebSocket, data: dict):
         try:
@@ -74,8 +80,12 @@ class ConnectionManager:
             )
             return
         for ws in conns:
-            asyncio.run_coroutine_threadsafe(
-                self._send_json(ws, message), loop)
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self._send_json(ws, message), loop)
+            except RuntimeError as e:
+                # Loop may be closed during shutdown; log but don't crash
+                log.debug("Broadcast failed (loop closed?): %s", e)
 
     async def broadcast_all(self, message: dict):
         """Send to every connected client (all users)."""

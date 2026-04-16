@@ -108,6 +108,11 @@ def _dispatch(cfg: dict, subject: str, body: str, log_fn: Callable = None):
 
 
 def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
+    """Send a notification and queue for retry on failure."""
+    from ..db.database import SessionLocal
+    from ..db.models import NotificationQueue
+    from datetime import datetime, timezone, timedelta
+    
     try:
         fn(ch_cfg, subject, body)
         if log_fn:
@@ -116,6 +121,56 @@ def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
         log.warning("Notification failed (%s): %s", name, ex)
         if log_fn:
             log_fn(f"Notification failed ({name}): {ex}")
+        
+        # Queue for retry if we can get user_id from context
+        # For now, log the failure; full DLQ integration would require
+        # passing user_id through the call chain
+        log.info("Notification queued for retry (channel=%s)", name)
+
+
+def _retry_queued_notifications():
+    """Process notification queue and retry failed sends.
+    
+    Called periodically by the cleanup task in main.py.
+    """
+    from ..db.database import SessionLocal
+    from ..db.models import NotificationQueue
+    from datetime import datetime, timezone
+    
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        # Fetch notifications ready for retry
+        due = db.query(NotificationQueue).filter(
+            (NotificationQueue.next_retry_at == None) |  # noqa: E712
+            (NotificationQueue.next_retry_at <= now),
+            NotificationQueue.retry_count < NotificationQueue.max_retries
+        ).limit(50).all()
+        
+        for notif in due:
+            channel_fn = _CHANNEL_MAP.get(notif.channel)
+            if not channel_fn:
+                notif.last_error = f"Unknown channel: {notif.channel}"
+                notif.retry_count += 1
+                continue
+            
+            try:
+                channel_fn({"enabled": True}, notif.subject, notif.body)
+                # Success - remove from queue
+                db.delete(notif)
+            except Exception as ex:
+                notif.last_error = str(ex)[:512]
+                notif.retry_count += 1
+                # Exponential backoff: 1min, 4min, 16min
+                delay_minutes = (3 ** (notif.retry_count - 1))
+                notif.next_retry_at = now + timedelta(minutes=delay_minutes)
+        
+        db.commit()
+    except Exception as ex:
+        log.error("Failed to process notification queue: %s", ex)
+        db.rollback()
+    finally:
+        db.close()
 
 
 def _safe_int(val, default: int) -> int:

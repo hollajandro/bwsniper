@@ -59,6 +59,8 @@ CORS_ORIGINS: list[str] = [
 
 # Fernet key for encrypting BuyWander credentials at rest.
 # If not set, generates one on first run and writes to DATA_DIR/fernet.key
+# IMPORTANT: You MUST back up this key file or set FERNET_KEY env var in production.
+# If the key is lost, all encrypted credentials become unrecoverable.
 _FERNET_KEY_FILE = DATA_DIR / "fernet.key"
 FERNET_KEY: str = os.getenv("FERNET_KEY", "")
 if not FERNET_KEY:
@@ -72,6 +74,21 @@ if not FERNET_KEY:
             _FERNET_KEY_FILE.chmod(0o600)  # owner-read/write only
         except NotImplementedError:
             pass  # Windows doesn't support chmod; acceptable there
+
+# Guard: fail loudly if FERNET_KEY is missing and no existing key file found
+# This prevents accidental data loss in ephemeral environments (e.g., containers)
+if not FERNET_KEY and not _FERNET_KEY_FILE.exists():
+    raise RuntimeError(
+        "ERROR: FERNET_KEY is not set and no existing key file was found.\n"
+        "Please set the FERNET_KEY environment variable or ensure the data/ directory is persisted.\n"
+        "Losing the Fernet key will make all encrypted credentials unrecoverable.\n"
+        "To generate a new key: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+    )
+
+# ── Cleanup intervals (seconds) ───────────────────────────────────────────────
+CLEANUP_INTERVAL_SEC = int(os.getenv("CLEANUP_INTERVAL_SEC", "60"))
+TOKEN_PURGE_INTERVAL_ITER = int(os.getenv("TOKEN_PURGE_INTERVAL_ITER", "5"))  # iterations before purge
+SESSION_REFRESH_INTERVAL_ITER = int(os.getenv("SESSION_REFRESH_INTERVAL_ITER", "1200"))  # ~20 hours
 
 # ── BuyWander upstream ───────────────────────────────────────────────────────
 BW_API_BASE  = os.getenv("BW_API_BASE", "https://api.buywander.com")

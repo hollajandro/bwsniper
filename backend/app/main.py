@@ -22,16 +22,18 @@ from slowapi.middleware import SlowAPIMiddleware
 from .api.auth import limiter
 from .db.database import init_db, SessionLocal
 from .api.router import api_router, ws_router
-from .config import CORS_ORIGINS
+from .config import CORS_ORIGINS, CLEANUP_INTERVAL_SEC, TOKEN_PURGE_INTERVAL_ITER, SESSION_REFRESH_INTERVAL_ITER
 from .services.snipe_service import restart_active_snipes
 from .services.worker_pool import pool
 from .services import keyword_watcher
+from .services.notification_service import _retry_queued_notifications
 from .websocket.manager import ws_manager
 
 
 async def _cleanup_loop():
     """Periodically remove finished AuctionWorker threads from the pool,
-    purge expired/revoked refresh tokens, and proactively refresh BW sessions."""
+    purge expired/revoked refresh tokens, proactively refresh BW sessions,
+    and retry queued notifications."""
     import asyncio as _asyncio
     import logging as _logging
     from datetime import datetime, timezone
@@ -41,14 +43,16 @@ async def _cleanup_loop():
     _logger = _logging.getLogger(__name__)
     _purge_counter = 0
     _session_refresh_counter = 0
+    _notif_retry_counter = 0
 
     while True:
-        await _asyncio.sleep(60)
+        await _asyncio.sleep(CLEANUP_INTERVAL_SEC)
         pool.cleanup_dead()
         _purge_counter += 1
         _session_refresh_counter += 1
+        _notif_retry_counter += 1
 
-        if _purge_counter >= 5:  # every 5 minutes
+        if _purge_counter >= TOKEN_PURGE_INTERVAL_ITER:
             _purge_counter = 0
             try:
                 db = SessionLocal()
@@ -62,7 +66,7 @@ async def _cleanup_loop():
             finally:
                 db.close()
 
-        if _session_refresh_counter >= 1200:  # every 20 hours (1200 × 60 s)
+        if _session_refresh_counter >= SESSION_REFRESH_INTERVAL_ITER:
             _session_refresh_counter = 0
             db = SessionLocal()
             try:
@@ -86,6 +90,14 @@ async def _cleanup_loop():
                                     login.bw_email, ex)
                 finally:
                     db.close()
+
+        # Retry queued notifications every cleanup cycle
+        if _notif_retry_counter >= 1:
+            _notif_retry_counter = 0
+            try:
+                _retry_queued_notifications()
+            except Exception as ex:
+                _logger.warning("Notification queue retry failed: %s", ex)
 
 
 @asynccontextmanager

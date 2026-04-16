@@ -8,6 +8,7 @@ Tables:
     history           – won-auction cache, per-login
     user_config       – notification & default settings, per-user
     event_log         – timestamped event stream, per-login
+    notification_queue – dead-letter queue for failed notifications
 """
 
 import uuid as _uuid
@@ -15,8 +16,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, Text, DateTime,
-    ForeignKey, Index,
+    Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, Index,
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -98,7 +98,7 @@ class BuyWanderLogin(Base):
                           cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index("ix_bwlogin_user", "user_id"),
+        Index("ix_buywander_login_user", "user_id"),
     )
 
 
@@ -107,55 +107,55 @@ class BuyWanderLogin(Base):
 class Snipe(Base):
     __tablename__ = "snipes"
 
-    id             = Column(String(36), primary_key=True, default=_new_uuid)
-    login_id       = Column(String(36), ForeignKey("buywander_logins.id"), nullable=False)
-    url            = Column(String(512), nullable=False)
-    handle         = Column(String(255), nullable=True)
-    auction_uuid   = Column(String(64), nullable=True)
-    title          = Column(String(512), nullable=True)
-    bid_amount     = Column(Float, nullable=False, default=0.0)
-    snipe_seconds  = Column(Integer, nullable=False, default=5)
-    status         = Column(String(32), nullable=False, default=SnipeStatus.LOADING)
-    current_bid    = Column(Float, default=0.0)
-    winner_handle  = Column(String(100), nullable=True)
-    winner_id      = Column(String(64), nullable=True)
-    bid_count      = Column(Integer, default=0)
-    my_max_bid     = Column(Float, nullable=True)
-    final_price    = Column(Float, nullable=True)
-    bid_placed     = Column(Boolean, default=False)
-    is_me          = Column(Boolean, default=False)
-    error_msg      = Column(String(255), nullable=True)
-    end_time       = Column(DateTime(timezone=True), nullable=True)
-    reminder_sent  = Column(Boolean, default=False)
-    notify         = Column(Boolean, nullable=True, default=None)  # None = use global, True = always, False = never
-    created_at     = Column(DateTime(timezone=True), default=_utcnow)
-    updated_at     = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
-    fired_at       = Column(DateTime(timezone=True), nullable=True)
-    ended_at       = Column(DateTime(timezone=True), nullable=True)
+    id              = Column(String(36), primary_key=True, default=_new_uuid)
+    login_id        = Column(String(36), ForeignKey("buywander_logins.id"), nullable=False)
+    url             = Column(String(512), nullable=False)
+    handle          = Column(String(255), nullable=True)
+    auction_uuid    = Column(String(64), nullable=True)
+    title           = Column(String(512), nullable=True)
+    bid_amount      = Column(Float, nullable=False)
+    snipe_seconds   = Column(Integer, default=5)
+    status          = Column(String(32), default=SnipeStatus.LOADING)
+    current_bid     = Column(Float, default=0.0)
+    winner_handle   = Column(String(100), nullable=True)
+    winner_id       = Column(String(64), nullable=True)
+    bid_count       = Column(Integer, default=0)
+    my_max_bid      = Column(Float, nullable=True)
+    final_price     = Column(Float, nullable=True)
+    bid_placed      = Column(Boolean, default=False)
+    is_me           = Column(Boolean, default=False)
+    error_msg       = Column(String(512), nullable=True)
+    end_time        = Column(DateTime(timezone=True), nullable=True)
+    reminder_sent   = Column(Boolean, default=False)
+    notify          = Column(Boolean, nullable=True)  # None = use global setting
+    created_at      = Column(DateTime(timezone=True), default=_utcnow)
+    updated_at      = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    fired_at        = Column(DateTime(timezone=True), nullable=True)
+    ended_at        = Column(DateTime(timezone=True), nullable=True)
 
     login = relationship("BuyWanderLogin", back_populates="snipes")
 
     __table_args__ = (
-        Index("ix_snipe_login_status", "login_id", "status"),
+        Index("ix_snipe_login", "login_id"),
+        Index("ix_snipe_status", "status"),
     )
 
 
-# ─── Won-Auction History ──────────────────────────────────────────────────────
+# ─── History ──────────────────────────────────────────────────────────────────
 
 class HistoryRecord(Base):
     __tablename__ = "history"
 
     id                = Column(String(36), primary_key=True, default=_new_uuid)
     login_id          = Column(String(36), ForeignKey("buywander_logins.id"), nullable=False)
-    auction_id        = Column(String(64), nullable=True, index=True)
+    auction_id        = Column(String(64), nullable=True)
     title             = Column(String(512), nullable=True)
     url               = Column(String(512), nullable=True)
-    condition         = Column(String(50), nullable=True)
-    final_price       = Column(Float, default=0.0)
-    my_bid            = Column(Float, default=0.0)
-    store_location_id = Column(String(64), nullable=True)
-    won_at            = Column(DateTime(timezone=True), nullable=True)
-    created_at        = Column(DateTime(timezone=True), default=_utcnow)
+    condition         = Column(String(64), nullable=True)
+    final_price       = Column(Float, nullable=False)
+    my_bid            = Column(Float, nullable=False)
+    store_location_id = Column(String(36), nullable=True)
+    won_at            = Column(DateTime(timezone=True), default=_utcnow)
 
     login = relationship("BuyWanderLogin", back_populates="history_records")
 
@@ -164,16 +164,15 @@ class HistoryRecord(Base):
     )
 
 
-# ─── User Config (JSON blob per user) ────────────────────────────────────────
+# ─── User Config ──────────────────────────────────────────────────────────────
 
 class UserConfig(Base):
     __tablename__ = "user_config"
 
-    id          = Column(String(36), primary_key=True, default=_new_uuid)
-    user_id     = Column(String(36), ForeignKey("users.id"), unique=True, nullable=False)
-    config_json = Column(Text, nullable=False, default="{}")
-    created_at  = Column(DateTime(timezone=True), default=_utcnow)
-    updated_at  = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    id            = Column(String(36), primary_key=True, default=_new_uuid)
+    user_id       = Column(String(36), ForeignKey("users.id"), unique=True, nullable=False)
+    config_json   = Column(Text, nullable=False, default="{}")
+    updated_at    = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
     user = relationship("User", back_populates="config")
 
@@ -183,15 +182,20 @@ class UserConfig(Base):
 class EventLog(Base):
     __tablename__ = "event_log"
 
-    id         = Column(Integer, primary_key=True, autoincrement=True)
-    login_id   = Column(String(36), ForeignKey("buywander_logins.id"), nullable=True)
-    user_id    = Column(String(36), nullable=True, index=True)
-    event_type = Column(String(50), nullable=True)    # info, error, bid, win, loss
-    message    = Column(Text, nullable=False)
-    auction_id = Column(String(64), nullable=True)
-    timestamp  = Column(DateTime(timezone=True), default=_utcnow, index=True)
+    id          = Column(String(36), primary_key=True, default=_new_uuid)
+    login_id    = Column(String(36), ForeignKey("buywander_logins.id"), nullable=False)
+    user_id     = Column(String(36), ForeignKey("users.id"), nullable=False)
+    event_type  = Column(String(32), nullable=False)
+    message     = Column(String(512), nullable=False)
+    auction_id  = Column(String(64), nullable=True)
+    created_at  = Column(DateTime(timezone=True), default=_utcnow, index=True)
 
     login = relationship("BuyWanderLogin", back_populates="events")
+
+    __table_args__ = (
+        Index("ix_event_log_user", "user_id"),
+        Index("ix_event_log_login", "login_id"),
+    )
 
 
 # ─── Watchlist ────────────────────────────────────────────────────────────────
@@ -230,4 +234,26 @@ class RefreshToken(Base):
 
     __table_args__ = (
         Index("ix_refresh_token_user", "user_id"),
+    )
+
+
+# ─── Notification Dead Letter Queue ──────────────────────────────────────────
+
+class NotificationQueue(Base):
+    """Dead-letter queue for failed notifications with retry support."""
+    __tablename__ = "notification_queue"
+
+    id             = Column(String(36), primary_key=True, default=_new_uuid)
+    user_id        = Column(String(36), ForeignKey("users.id"), nullable=False)
+    channel        = Column(String(32), nullable=False)  # telegram, smtp, pushover, gotify
+    subject        = Column(String(512), nullable=False)
+    body           = Column(Text, nullable=False)
+    retry_count    = Column(Integer, default=0)
+    max_retries    = Column(Integer, default=3)
+    last_error     = Column(String(512), nullable=True)
+    next_retry_at  = Column(DateTime(timezone=True), nullable=True)
+    created_at     = Column(DateTime(timezone=True), default=_utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_notification_queue_retry", "next_retry_at"),
     )

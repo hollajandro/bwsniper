@@ -1,8 +1,8 @@
 name: Cleanup Old Images
 on:
   schedule:
-    - cron: '0 0 * * SUN' # Runs weekly
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 0 * * SUN'
+  workflow_dispatch:
 
 jobs:
   delete-images:
@@ -14,8 +14,14 @@ jobs:
           owner: ${{ github.repository_owner }}
           name: bwsniper-frontend
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Use a regex or specific tags to delete
-          tag: "/^dev-.*|sha-.*/"
+          tag: "dev-"
+      - name: Delete SHA images
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: ${{ github.repository_owner }}
+          name: bwsniper-frontend
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: "sha-"
   delete-images2:
     runs-on: ubuntu-latest
     steps:
@@ -23,7 +29,13 @@ jobs:
         uses: bots-house/ghcr-delete-image-action@v1.1.0
         with:
           owner: ${{ github.repository_owner }}
+          name: bwsniper-frontend
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: "dev-"
+      - name: Delete SHA images
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: ${{ github.repository_owner }}
           name: bwsniper-backend
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Use a regex or specific tags to delete
-          tag: "/^dev-.*|sha-.*/" 
+          tag: "sha-"

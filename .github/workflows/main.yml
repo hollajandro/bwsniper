@@ -1,0 +1,24 @@
+            - name: GHCR Delete Image
+  # You may pin to the exact commit or the version.
+  # uses: bots-house/ghcr-delete-image-action@3827559c68cb4dcdf54d813ea9853be6d468d3a4
+  uses: bots-house/ghcr-delete-image-action@v1.1.0
+  with: 
+    # Owner of the package (user or organization)
+
+    owner: hollajandro
+    # Name of the package containing the version to delete.
+
+    name: bwsniper-frontend
+    # Token with the necessary scopes to delete package versions.
+
+    token: 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
+    # Tag to delete
+
+    tag: # optional
+    # Delete all untagged images except the last N
+
+    untagged-keep-latest: 5 # optional
+    # Delete all untagged images older than N in days.
+
+    untagged-older-than: # optional
+          

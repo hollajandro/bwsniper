@@ -21,6 +21,7 @@ from ..config import REFRESH_TOKEN_EXPIRE
 from ..db.database import get_db
 from ..db.models import RefreshToken, User
 from ..db.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
+from ..dependencies import get_current_user
 from ..services.auth_service import authenticate_user, get_user_by_id, register_user
 from ..utils.jwt_utils import create_access_token, create_refresh_token, decode_token
 

@@ -6,11 +6,48 @@
 #   docker compose up -d
 #
 # The web UI will be available at http://localhost:80
+# API will be available at http://localhost:8000 (optional direct access)
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
+  # ── PostgreSQL Database ─────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: bwsniper-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bwsniper
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bwsniper123}
+      POSTGRES_DB: bwsniper
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - bwsniper-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bwsniper -d bwsniper"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
-  # ── FastAPI backend ─────────────────────────────────────────────────────────
+  # ── Redis Cache & Job Queue ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bwsniper-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - bwsniper-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -20,10 +57,11 @@ services:
     user: "0"
 
     environment:
-      # Database — SQLite stored in the named volume below.
-      # The default path matches DATA_DIR in config.py (/backend/data).
-      # To use Postgres instead: postgresql+psycopg2://user:pass@db:5432/bwsniper
-      # DATABASE_URL: "sqlite:////backend/data/bwsniper.db"
+      # Database — PostgreSQL connection string
+      DATABASE_URL: "postgresql://bwsniper:${POSTGRES_PASSWORD:-bwsniper123}@db:5432/bwsniper"
+
+      # Redis connection for caching and job queue
+      REDIS_URL: "redis://redis:6379/0"
 
       # JWT signing secret — MUST be set in production.
       # Generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -45,32 +83,46 @@ services:
       # Number of Uvicorn worker processes (default 2).
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
 
+      # OpenTelemetry exporter endpoint (optional)
+      OTEL_EXPORTER_ENDPOINT: "${OTEL_EXPORTER_ENDPOINT:-}"
+
+      # Log level
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+
       # JWT token lifetimes (optional overrides).
       # ACCESS_TOKEN_EXPIRE_MINUTES: "1440"   # 24 hours
       # REFRESH_TOKEN_EXPIRE_DAYS:  "30"
 
     volumes:
-      # Persist the SQLite database and auto-generated key files.
-      # Mounted at /backend/data to match DATA_DIR in config.py.
+      # Persist Fernet key and other data files.
       - backend-data:/backend/data
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
     command: >
       sh -c "chmod -R 775 /backend/data || true &&
+             alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers $${WEB_CONCURRENCY:-2} --proxy-headers --forwarded-allow-ips=*"
 
-    # Only expose the API port if you need direct access (e.g. debugging).
-    # In normal use the frontend nginx container proxies all /api and /ws traffic.
-    # ports:
-    #   - "8000:8000"
+    # Expose API port for direct access (optional)
+    ports:
+      - "8000:8000"
+
+    networks:
+      - bwsniper-network
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
 
-  # ── Nginx + React frontend ──────────────────────────────────────────────────
+  # ── Nginx + React Frontend ──────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -85,7 +137,18 @@ services:
       backend:
         condition: service_healthy
 
+    networks:
+      - bwsniper-network
+
 # ─────────────────────────────────────────────────────────────────────────────
+networks:
+  bwsniper-network:
+    driver: bridge
+
 volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
   backend-data:
     driver: local

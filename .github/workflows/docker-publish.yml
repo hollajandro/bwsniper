@@ -58,6 +58,22 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
+      - name: Wait for image to be available
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Waiting for image to propagate to GHCR..."
+          sleep 10
+          # Retry loop for image availability
+          for i in {1..5}; do
+            if docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${{ github.sha }} > /dev/null 2>&1; then
+              echo "Image is available!"
+              exit 0
+            fi
+            echo "Attempt $i: Image not ready yet, waiting 5 seconds..."
+            sleep 5
+          done
+          echo "Warning: Image may not be fully propagated, proceeding with scan anyway"
+
       - name: Run Trivy vulnerability scanner - Backend
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
@@ -118,6 +134,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+
+      - name: Wait for image to be available
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Waiting for frontend image to propagate to GHCR..."
+          sleep 10
+          # Retry loop for image availability
+          for i in {1..5}; do
+            if docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${{ github.sha }} > /dev/null 2>&1; then
+              echo "Frontend image is available!"
+              exit 0
+            fi
+            echo "Attempt $i: Frontend image not ready yet, waiting 5 seconds..."
+            sleep 5
+          done
+          echo "Warning: Frontend image may not be fully propagated, proceeding with scan anyway"
 
       - name: Run Trivy vulnerability scanner - Frontend
         if: github.event_name != 'pull_request'

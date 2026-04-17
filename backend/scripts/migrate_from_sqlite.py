@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Automated migration script from SQLite to PostgreSQL.
-Usage: docker compose run --rm db-migration
+Usage: 
+  - Docker: docker compose run --rm db-migration
+  - Local: python migrate_from_sqlite.py /path/to/app.db
 """
 
 import os
@@ -14,9 +16,9 @@ from sqlalchemy.orm import sessionmaker
 from alembic.config import Config
 from alembic import command
 
-# Configuration
-SQLITE_PATH = "/app/backend/data/app.db"
-SQLITE_BACKUP_PATH = "/app/backend/data/app.db.backup"
+# Configuration - Allow override via command line argument
+SQLITE_PATH = sys.argv[1] if len(sys.argv) > 1 else os.getenv("SQLITE_DB_PATH", "/app/backend/data/app.db")
+SQLITE_BACKUP_PATH = SQLITE_PATH + ".backup"
 POSTGRES_URL = os.getenv("DATABASE_URL", "postgresql://bwsniper:bwsniper@postgres:5432/bwsniper")
 
 def get_sqlite_engine():

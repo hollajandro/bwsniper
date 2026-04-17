@@ -21,6 +21,19 @@ log = logging.getLogger(__name__)
 from ..config import BW_API_BASE, BW_SITE_BASE, BW_SESSION_HEADERS, BROWSE_PAGE_SIZE
 from ..utils.crypto import decrypt
 
+# Allowlists for filter parameters to prevent injection into BuyWander API
+ALLOWED_CONDITIONS = frozenset({
+    "New", "AppearsNew", "UsedGood", "UsedFair", "Damaged",
+    "GentlyUsed", "Used", "EasyFix", "HeavyUse", "MajorFix", "MixedCondition"
+})
+ALLOWED_AUCTION_FILTERS = frozenset({
+    "BuyNow", "NoReserve", "HasBids", "Featured"
+})
+ALLOWED_SORT = frozenset({
+    "EndingSoonest", "NewlyListed", "LowestBid", "HighestBid",
+    "MostBids", "HighestRetail", "LowestRetail"
+})
+
 _UUID_RE = re.compile(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I
 )
@@ -204,14 +217,26 @@ def fetch_active_auctions(
     min_retail_price: float = None,
     max_retail_price: float = None,
 ) -> dict:
-    """Browse all active auctions with filters."""
+    """Browse all active auctions with filters.
+    
+    Validates filter values against allowlists to prevent injection attacks.
+    """
+    # Sanitize filter inputs against allowlists
+    if conditions:
+        conditions = [c for c in conditions if c in ALLOWED_CONDITIONS]
+    if auction_filters:
+        auction_filters = [f for f in auction_filters if f in ALLOWED_AUCTION_FILTERS]
+    if sort_by not in ALLOWED_SORT:
+        log.warning("Invalid sort_by '%s', defaulting to EndingSoonest", sort_by)
+        sort_by = "EndingSoonest"
+    
     payload = {
         "pageNumber":           page,
         "pageSize":             page_size,
         "sortBy":               sort_by,
         "search":               search or "",
         "conditions":           conditions or [],
-        "categories":           categories or [],
+        "categories":           categories or [],  # categories are free-form from BW
         "auctionFilters":       auction_filters or [],
         "storeLocationIds":     store_location_ids or [],
         "myAuctions":           False,

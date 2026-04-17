@@ -1,0 +1,99 @@
+
+name: Cleanup Old Images
+on:
+  schedule:
+    - cron: '0 0 * * SUN'
+  workflow_dispatch:
+
+jobs:
+  delete-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GHCR Pruning
+  # You may pin to the exact commit or the version.
+  # uses: vlaurin/action-ghcr-prune@0cf7d39f88546edd31965acba78cdcb0be14d641
+        uses: vlaurin/action-ghcr-prune@v0.6.0
+        with:
+          # Secret access token with scopes `packages:read` and `packages:delete` and write permissions on the targeted container
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Organisation to which the container belongs, mutually exclusive with input `user`
+          organization: # optional
+          # User to which the container belongs, mutually exclusive with input `organization`
+          user: # optional
+          # Name of the container to prune
+          container: bwsniper-frontend
+          # When `true` prints out matching container versions without pruning them
+          dry-run: # optional
+          # Minimum age in days of container versions to prune
+          older-than: # optional, default is 0
+          # Count of most recent, matching containers to exclude from pruning
+          keep-last: 5 # optional, default is 0
+          # List of tags to exclude from pruning, one per line.
+          # Any version with at least one matching tag will be excluded.
+          # Matching is exact and case-sensitive.
+      
+          keep-tags: # optional
+          # List of regular expressions for tags to exclude from pruning, one per line.
+          # Each expression will be evaluated against all tags of a version.
+          # Any version with at least one tag matching the expression will be excluded from pruning.
+      
+          keep-tags-regexes: # optional
+          # Minimum age in days of container versions that will be pruned
+          keep-younger-than: # optional, default is 0
+          # List of regular expressions for tags to include in pruning, one per line.
+          # Each expression will be evaluated against all tags of a version.
+          # Any version with at least one tag matching the expression will be included in pruning.
+      
+          prune-tags-regexes: # optional
+          # Whether untagged container versions should be pruned
+          prune-untagged: # optional
+          # Whether untagged container versions should be pruned
+          untagged: # optional
+          # Regular expression matching tagged container versions which should be pruned
+          tag-regex: # optional
+
+  delete-images2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GHCR Pruning
+  # You may pin to the exact commit or the version.
+  # uses: vlaurin/action-ghcr-prune@0cf7d39f88546edd31965acba78cdcb0be14d641
+        uses: vlaurin/action-ghcr-prune@v0.6.0
+        with:
+          # Secret access token with scopes `packages:read` and `packages:delete` and write permissions on the targeted container
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Organisation to which the container belongs, mutually exclusive with input `user`
+          organization: # optional
+          # User to which the container belongs, mutually exclusive with input `organization`
+          user: # optional
+          # Name of the container to prune
+          container: bwsniper-backend
+          # When `true` prints out matching container versions without pruning them
+          dry-run: # optional
+          # Minimum age in days of container versions to prune
+          older-than: # optional, default is 0
+          # Count of most recent, matching containers to exclude from pruning
+          keep-last: 5 # optional, default is 0
+          # List of tags to exclude from pruning, one per line.
+          # Any version with at least one matching tag will be excluded.
+          # Matching is exact and case-sensitive.
+      
+          keep-tags: # optional
+          # List of regular expressions for tags to exclude from pruning, one per line.
+          # Each expression will be evaluated against all tags of a version.
+          # Any version with at least one tag matching the expression will be excluded from pruning.
+      
+          keep-tags-regexes: # optional
+          # Minimum age in days of container versions that will be pruned
+          keep-younger-than: # optional, default is 0
+          # List of regular expressions for tags to include in pruning, one per line.
+          # Each expression will be evaluated against all tags of a version.
+          # Any version with at least one tag matching the expression will be included in pruning.
+      
+          prune-tags-regexes: # optional
+          # Whether untagged container versions should be pruned
+          prune-untagged: # optional
+          # Whether untagged container versions should be pruned
+          untagged: # optional
+          # Regular expression matching tagged container versions which should be pruned
+          tag-regex: # optional

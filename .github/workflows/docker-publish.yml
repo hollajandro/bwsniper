@@ -63,6 +63,7 @@ jobs:
         run: |
           SHORT_SHA=${{ github.sha }}
           SHORT_SHA=${SHORT_SHA:0:7}
+          echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
           echo "Waiting for image (sha-${SHORT_SHA}) to propagate to GHCR..."
           # Retry loop for image availability using short SHA
           for i in {1..12}; do
@@ -73,17 +74,17 @@ jobs:
             echo "Attempt $i: Image not ready yet, waiting 5 seconds..."
             sleep 5
           done
-          echo "Warning: Image with short SHA not found, falling back to latest tag"
-          echo "TRIVY_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest" >> $GITHUB_ENV
+          echo "::warning::Image with short SHA not found after retries. Scan may fail."
 
       - name: Run Trivy vulnerability scanner - Backend
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.TRIVY_IMAGE || format('{0}/{1}-backend:sha-{2}', env.REGISTRY, env.IMAGE_NAME, github.sha) }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${{ env.SHORT_SHA }}
           format: 'sarif'
           output: 'trivy-backend-results.sarif'
           severity: 'CRITICAL,HIGH'
+        continue-on-error: true
 
       - name: Upload Trivy scan results - Backend
         if: github.event_name != 'pull_request'
@@ -140,29 +141,30 @@ jobs:
       - name: Wait for image to be available
         if: github.event_name != 'pull_request'
         run: |
-          SHORT_SHA=${{ github.sha }}
-          SHORT_SHA=${SHORT_SHA:0:7}
-          echo "Waiting for frontend image (sha-${SHORT_SHA}) to propagate to GHCR..."
+          SHORT_SHA_FE=${{ github.sha }}
+          SHORT_SHA_FE=${SHORT_SHA_FE:0:7}
+          echo "SHORT_SHA_FE=${SHORT_SHA_FE}" >> $GITHUB_ENV
+          echo "Waiting for frontend image (sha-${SHORT_SHA_FE}) to propagate to GHCR..."
           # Retry loop for image availability using short SHA
           for i in {1..12}; do
-            if docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA} > /dev/null 2>&1; then
+            if docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA_FE} > /dev/null 2>&1; then
               echo "Frontend image is available!"
               exit 0
             fi
             echo "Attempt $i: Frontend image not ready yet, waiting 5 seconds..."
             sleep 5
           done
-          echo "Warning: Frontend image with short SHA not found, falling back to latest tag"
-          echo "TRIVY_IMAGE_FRONTEND=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest" >> $GITHUB_ENV
+          echo "::warning::Frontend image with short SHA not found after retries. Scan may fail."
 
       - name: Run Trivy vulnerability scanner - Frontend
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.TRIVY_IMAGE_FRONTEND || format('{0}/{1}-frontend:sha-{2}', env.REGISTRY, env.IMAGE_NAME, github.sha) }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${{ env.SHORT_SHA_FE }}
           format: 'sarif'
           output: 'trivy-frontend-results.sarif'
           severity: 'CRITICAL,HIGH'
+        continue-on-error: true
 
       - name: Upload Trivy scan results - Frontend
         if: github.event_name != 'pull_request'

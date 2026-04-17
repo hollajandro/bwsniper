@@ -49,9 +49,7 @@ services:
 
   # ── FastAPI Backend ─────────────────────────────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-backend:${TAG:-latest}
     container_name: bwsniper-api
     restart: unless-stopped
     user: "0"
@@ -124,9 +122,7 @@ services:
 
   # ── Nginx + React Frontend ──────────────────────────────────────────────────
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-frontend:${TAG:-latest}
     container_name: bwsniper-web
     restart: unless-stopped
 

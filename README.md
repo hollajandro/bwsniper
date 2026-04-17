@@ -1,53 +1,245 @@
-# BwSniper
+# BwSniper v2.0
 
-A self-hosted web application for automated auction sniping on [BuyWander](https://www.buywander.com). Browse live auctions, queue snipe bids that fire automatically at a configurable number of seconds before an auction ends, and manage your cart — all from a single dashboard.
+[![Docker Publish](https://github.com/hollajandro/bwsniper/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/hollajandro/bwsniper/actions)
+[![GHCR Images](https://img.shields.io/badge/GHCR-registry-blue)](https://github.com/hollajandro/bwsniper/pkgs)
+
+A self-hosted web application for automated auction sniping on [BuyWander](https://www.buywander.com). Deploy with Docker Compose in minutes.
+
+```bash
+docker compose up -d
+```
 
 ---
 
-## Table of Contents
+## Architecture
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Quick Start — Docker](#quick-start--docker)
-- [Development Setup](#development-setup)
-- [Configuration](#configuration)
-- [Usage Guide](#usage-guide)
-- [API Reference](#api-reference)
-- [Snipe Lifecycle](#snipe-lifecycle)
-- [Data & Security](#data--security)
-- [Troubleshooting](#troubleshooting)
+```mermaid
+graph TB
+    subgraph Frontend
+        A[React SPA<br/>Nginx]
+    end
+    
+    subgraph Backend
+        B[FastAPI Server]
+        C[Auction Workers]
+        D[WebSocket Manager]
+    end
+    
+    subgraph Data
+        E[(PostgreSQL<br/>Primary DB)]
+        F[(Redis<br/>Cache & Queue)]
+    end
+    
+    User -->|HTTPS| A
+    A -->|REST API| B
+    A -->|WebSocket| D
+    B -->|SQL| E
+    B -->|Cache| F
+    C -->|Poll BuyWander| G[BuyWander API]
+    C -->|Update DB| E
+    C -->|Broadcast| D
+    D -->|Real-time| A
+```
+
+**Components:**
+- **Frontend**: React 18 + Vite + Tailwind CSS (served via Nginx)
+- **Backend**: FastAPI with background auction workers
+- **Database**: PostgreSQL 16 (persistent storage)
+- **Cache**: Redis 7 (session cache, job queue)
+- **Images**: Pre-built on GHCR (`ghcr.io/hollajandro/bwsniper-*`)
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- BuyWander account credentials
+
+### 1. Clone & Configure
+```bash
+git clone https://github.com/hollajandro/bwsniper.git
+cd bwsniper
+cp .env.example .env
+```
+
+### 2. Generate secrets
+```bash
+# SECRET_KEY for JWT tokens
+python3 -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(48))" >> .env
+
+# FERNET_KEY for encrypting credentials
+python3 -c "from cryptography.fernet import Fernet; print('FERNET_KEY=' + Fernet.generate_key().decode())" >> .env
+```
+
+### 3. Add BuyWander credentials
+Edit `.env` and add:
+```env
+BW_USERNAME=your_buywander_username
+BW_PASSWORD=your_buywander_password
+```
+
+### 4. Deploy
+```bash
+docker compose up -d
+```
+
+### 5. Access
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
 
 ---
 
 ## Features
 
-### Sniping
-- **Automated snipe bids** — a background worker thread monitors each auction and fires your bid at a precise number of seconds before it ends
-- **Live status updates** — real-time WebSocket push; status badges, countdown timers, and the current winning bid all update without polling
-- **Per-snipe timing control** — set snipe timing from 1–120 seconds independently for each bid
-- **Live bid editing** — change your max bid or timing on a running snipe and the worker picks it up immediately (thread-safe)
-- **Win/loss notifications** — in-app toast on win; optional email notifications configurable per-snipe or globally
+### 🎯 Sniping
+- **Automated bids** - Background workers fire bids at precise seconds before auction ends
+- **Live updates** - Real-time WebSocket push for status, countdowns, and current bids
+- **Per-snipe timing** - Configure 1-120 second snipe window independently per bid
+- **Live editing** - Change bid amount or timing on running snipes (thread-safe)
+- **Win/loss notifications** - In-app toasts + optional email notifications
 
-### Browse
-- **Full auction browser** — browse all active BuyWander auctions with server-side pagination and infinite scroll
-- **Filters** — location (multi-select), condition (multi-select), retail price range, keyword search with `"quoted phrase"` exact matching
-- **Sort options** — ending soonest/latest, new arrivals, price ascending/descending, retail ascending/descending, bids ascending/descending
-- **Quick filters** — Sniped, Watched, No Bids Yet, $3 or Less, Ends Today, Ends Tomorrow, 90%+ Off
-- **Auction detail modal** — full description, seller notes, image gallery with fullscreen lightbox, bid history table, and live Google Shopping price comparison
-- **Snipe from Browse** — click any card to open the detail modal and snipe directly; pre-filled with current bid + $1 and 35% of retail as a suggested maximum
-- **Bulk snipe** — select multiple auctions with checkboxes and queue them all at once
-- **Condition badges** — color-coded by condition (New → Damaged) with bid-count heat indicators
-- **Ended auction cache** — auctions that expire while you're browsing are preserved in a 7-day local cache under an "Ended" tab
-- **Recently viewed** — a "Recent" tab tracks the last 50 auctions you opened
+### 🔍 Browse
+- **Full auction browser** - Server-side pagination, infinite scroll
+- **Advanced filters** - Location, condition, price range, keyword search with `"exact phrases"`
+- **Sort options** - Ending soonest/latest, price, bids, retail value
+- **Quick filters** - Sniped, Watched, No Bids, $3 or Less, Ends Today, 90%+ Off
+- **Detail modals** - Full descriptions, image gallery, bid history, Google Shopping comparison
+- **Bulk snipe** - Select multiple auctions and queue simultaneously
 
-### Dashboard
-- **Active snipes table** — live countdown, current bid, your bid, leading bidder, snipe-at timing
-- **Past snipes** — won/lost/ended history with final prices
-- **Session statistics** — win rate, total wins/losses, dollars saved, average discount
-- **Win toast** — animated notification when you win an auction
-- **Edit/cancel** — modify any active snipe or cancel it from the table
+### 📊 Dashboard
+- **Active snipes table** - Live countdown, current bid, your bid, leading bidder
+- **History** - Won/lost/ended auctions with final prices
+- **Statistics** - Win rate, total savings, average discount
+- **Edit/cancel** - Modify or cancel any active snipe
 
-### Cart
+### 🛒 Cart Management
+- **Auto-add wins** - Won items automatically added to cart
+- **Cart sync** - Real-time sync with BuyWander cart
+- **Checkout helper** - One-click checkout with saved payment methods
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `SECRET_KEY` | ✅ | JWT signing key | `random 48-char string` |
+| `FERNET_KEY` | ✅ | Encryption key for credentials | `generated by Fernet` |
+| `BW_USERNAME` | ✅ | BuyWander username | `myuser` |
+| `BW_PASSWORD` | ✅ | BuyWander password | `mypassword` |
+| `DATABASE_URL` | ✅ | PostgreSQL connection | `postgresql://user:pass@postgres:5432/bwsniper` |
+| `REDIS_URL` | ✅ | Redis connection | `redis://redis:6379/0` |
+| `SMTP_HOST` | ❌ | Email notification server | `smtp.gmail.com` |
+| `SMTP_PORT` | ❌ | Email port | `587` |
+| `SMTP_USER` | ❌ | Email username | `notifications@gmail.com` |
+| `SMTP_PASSWORD` | ❌ | Email password | `app-password` |
+
+See `.env.example` for full list.
+
+---
+
+## Migration from SQLite (v1.x)
+
+If upgrading from the legacy SQLite version:
+
+```bash
+# 1. Backup your old data
+cp backend/data/app.db backend/data/app.db.backup
+cp backend/data/fernet.key backend/data/fernet.key.backup
+
+# 2. Start new stack (PostgreSQL + Redis only)
+docker compose up -d postgres redis
+
+# 3. Run migration script
+docker compose run --rm db-migration
+
+# 4. Start full stack
+docker compose up -d
+```
+
+The migration script automatically:
+- Detects and backs up your SQLite database
+- Creates PostgreSQL schema via Alembic
+- Transfers all data (users, snipes, history, events)
+- Preserves encrypted credentials (keep `fernet.key` safe!)
+
+See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for details.
+
+---
+
+## Development
+
+### Local setup (without Docker)
+```bash
+# Backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+# Frontend
+cd ../frontend
+npm install
+npm run dev
+```
+
+### Running tests
+```bash
+pytest backend/tests/
+```
+
+### Building images locally
+```bash
+docker compose build
+```
+
+---
+
+## Troubleshooting
+
+### Container won't start
+```bash
+docker compose logs backend
+docker compose logs postgres
+```
+
+### Database connection errors
+Ensure PostgreSQL is healthy:
+```bash
+docker compose ps postgres
+docker compose logs postgres
+```
+
+### Migration fails
+Check SQLite backup exists and retry:
+```bash
+docker compose run --rm db-migration --dry-run
+```
+
+### Reset everything
+```bash
+docker compose down -v  # Removes all volumes
+docker compose up -d    # Fresh start
+```
+
+---
+
+## Support
+
+- **Issues**: https://github.com/hollajandro/bwsniper/issues
+- **Discussions**: https://github.com/hollajandro/bwsniper/discussions
+- **Documentation**: See `DEPLOYMENT.md` and `MIGRATION_GUIDE.md`
+
+---
+
+## License
+
+MIT License - see LICENSE file
 - **Full cart view** — paid items awaiting pickup, pending-payment items, reserved auctions
 - **Location selector** — defaults to the location set in Settings; remembers your choice
 - **Removal allowance banner** — shows how many free item removals remain (color-coded: green → yellow at 70% used → red at zero); confirms remaining count before each removal

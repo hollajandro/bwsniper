@@ -8,3 +8,14 @@ cryptography>=42.0
 requests>=2.31
 python-multipart>=0.0.7
 slowapi>=0.1.9
+
+# Migrations
+alembic>=1.13
+
+# Observability
+prometheus-client>=0.19
+opentelemetry-api>=1.22
+opentelemetry-sdk>=1.22
+opentelemetry-instrumentation-fastapi>=0.43
+opentelemetry-exporter-otlp>=1.22
+opentelemetry-instrumentation-sqlalchemy>=0.43

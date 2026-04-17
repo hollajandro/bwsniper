@@ -2,15 +2,18 @@
 backend/app/main.py — FastAPI application factory.
 
 Startup:
-    1. Create database tables
-    2. Restart workers for any non-terminal snipes
-    3. Include all routers
+    1. Initialize OpenTelemetry tracing and Prometheus metrics
+    2. Create database tables via Alembic migrations
+    3. Restart workers for any non-terminal snipes
+    4. Include all routers
 
 Shutdown:
     1. Stop all auction workers gracefully
+    2. Shutdown telemetry
 """
 
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +21,19 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+
+# OpenTelemetry instrumentation
+from opentelemetry import trace, metrics
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+# Prometheus metrics
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 from .api.auth import limiter
 from .db.database import init_db, SessionLocal
@@ -28,6 +44,35 @@ from .services.worker_pool import pool
 from .services import keyword_watcher
 from .services.notification_service import _retry_queued_notifications
 from .websocket.manager import ws_manager
+
+# ── Metrics & Tracing Globals ────────────────────────────────────────────────
+SNIPES_FIRED = Counter("bwsniper_snipes_fired_total", "Total number of snipes fired")
+SNIPES_WON = Counter("bwsniper_snipes_won_total", "Total number of snipes won")
+SNIPES_LOST = Counter("bwsniper_snipes_lost_total", "Total number of snipes lost")
+BID_LATENCY = Histogram("bwsniper_bid_latency_seconds", "Bid submission latency")
+
+tracer = None
+meter = None
+
+
+def init_telemetry():
+    """Initialize OpenTelemetry tracing if OTEL_EXPORTER_ENDPOINT is set."""
+    global tracer, meter
+    
+    resource = Resource.create({"service.name": "bwsniper-backend"})
+    
+    # Tracing
+    trace.set_tracer_provider(TracerProvider(resource=resource))
+    otel_endpoint = os.getenv("OTEL_EXPORTER_ENDPOINT")
+    if otel_endpoint:
+        span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint))
+        trace.get_tracer_provider().add_span_processor(span_processor)
+    
+    tracer = trace.get_tracer(__name__)
+    
+    # Metrics
+    metrics.set_meter_provider(MeterProvider(resource=resource))
+    meter = metrics.get_meter(__name__)
 
 
 async def _cleanup_loop():
@@ -105,6 +150,7 @@ async def lifespan(app: FastAPI):
     import asyncio as _asyncio
 
     # ── Startup ──────────────────────────────────────────────────────────────
+    init_telemetry()
     init_db()
 
     # Give the WebSocket manager a reference to the running event loop so that
@@ -140,6 +186,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Instrument FastAPI with OpenTelemetry (auto-traces all requests)
+FastAPIInstrumentor.instrument_app(app)
+
 # Rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -171,3 +220,9 @@ def health():
         "active_workers": pool.active_count(),
         "ws_connections": ws_manager.connection_count(),
     }
+
+
+@app.get("/metrics")
+def metrics_endpoint():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

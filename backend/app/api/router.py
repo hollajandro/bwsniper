@@ -4,7 +4,18 @@ backend/app/api/router.py — Mount all API sub-routers.
 
 from fastapi import APIRouter
 
-from . import auth, logins, snipes, auctions, history, cart, settings, events, websocket, admin
+from . import (
+    auth,
+    logins,
+    snipes,
+    auctions,
+    history,
+    cart,
+    settings,
+    events,
+    websocket,
+    admin,
+)
 from .watchlist import router as watchlist_router
 from .price_compare import router as price_compare_router
 

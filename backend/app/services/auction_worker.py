@@ -18,35 +18,51 @@ from ..db.database import SessionLocal
 from ..db.models import Snipe, EventLog, HistoryRecord, SnipeStatus, BuyWanderLogin
 from ..utils.retry import with_retry as _with_retry
 from ..utils.crypto import decrypt as _decrypt, encrypt as _encrypt
-from .buywander_api import (get_auction, place_bid, parse_dt,
-                             bw_login, create_bw_session, serialise_cookies)
+from .buywander_api import (
+    get_auction,
+    place_bid,
+    parse_dt,
+    bw_login,
+    create_bw_session,
+    serialise_cookies,
+)
 
 
 class AuctionWorker(threading.Thread):
     """Daemon thread that polls a single auction and fires a snipe."""
 
-    def __init__(self, snipe_id: str, login_id: str, user_id: str,
-                 bw_session: _requests.Session, customer_id: str,
-                 handle: str, bid_amount: float, snipe_seconds: int,
-                 ws_manager=None, notification_fn=None,
-                 bw_email: str = None, encrypted_password: str = None):
+    def __init__(
+        self,
+        snipe_id: str,
+        login_id: str,
+        user_id: str,
+        bw_session: _requests.Session,
+        customer_id: str,
+        handle: str,
+        bid_amount: float,
+        snipe_seconds: int,
+        ws_manager=None,
+        notification_fn=None,
+        bw_email: str | None = None,
+        encrypted_password: str | None = None,
+    ):
         super().__init__(daemon=True)
-        self.snipe_id          = snipe_id
-        self.login_id          = login_id
-        self.user_id           = user_id
-        self.bw_session        = bw_session
-        self.customer_id       = customer_id
-        self.handle            = handle
-        self.ws_manager        = ws_manager
-        self.notification_fn   = notification_fn
-        self._bw_email         = bw_email
-        self._encrypted_pw     = encrypted_password
-        self._stop_event       = threading.Event()
+        self.snipe_id = snipe_id
+        self.login_id = login_id
+        self.user_id = user_id
+        self.bw_session = bw_session
+        self.customer_id = customer_id
+        self.handle = handle
+        self.ws_manager = ws_manager
+        self.notification_fn = notification_fn
+        self._bw_email = bw_email
+        self._encrypted_pw = encrypted_password
+        self._stop_event = threading.Event()
         # bid_amount and snipe_seconds can be updated live from the HTTP
         # request thread via snipe_service.update_snipe().  Protect with a
         # lock so the worker thread always reads a consistent pair.
-        self._params_lock   = threading.Lock()
-        self._bid_amount    = bid_amount
+        self._params_lock = threading.Lock()
+        self._bid_amount = bid_amount
         self._snipe_seconds = snipe_seconds
 
     # ── Thread-safe parameter accessors ──────────────────────────────────────
@@ -79,7 +95,9 @@ class AuctionWorker(threading.Thread):
     def _reauthenticate(self) -> bool:
         """Re-login to BuyWander, refresh self.bw_session, and persist new cookies."""
         if not self._bw_email or not self._encrypted_pw:
-            self._log_event("Cannot re-authenticate: credentials not available", "error")
+            self._log_event(
+                "Cannot re-authenticate: credentials not available", "error"
+            )
             return False
         try:
             password = _decrypt(self._encrypted_pw)
@@ -88,15 +106,20 @@ class AuctionWorker(threading.Thread):
             new_cookies_enc = _encrypt(serialise_cookies(new_session))
             db = self._db()
             try:
-                login = db.query(BuyWanderLogin).filter(
-                    BuyWanderLogin.id == self.login_id).first()
+                login = (
+                    db.query(BuyWanderLogin)
+                    .filter(BuyWanderLogin.id == self.login_id)
+                    .first()
+                )
                 if login:
                     login.encrypted_cookies = new_cookies_enc
                     db.commit()
             finally:
                 db.close()
             self.bw_session = new_session
-            self._log_event("Session refreshed — re-authenticated with BuyWander", "info")
+            self._log_event(
+                "Session refreshed — re-authenticated with BuyWander", "info"
+            )
             return True
         except Exception as ex:
             self._log_event(f"Re-authentication failed: {ex}", "error")
@@ -118,8 +141,9 @@ class AuctionWorker(threading.Thread):
         finally:
             db.close()
 
-    def _log_event(self, message: str, event_type: str = "info",
-                   auction_id: str = None):
+    def _log_event(
+        self, message: str, event_type: str = "info", auction_id: str | None = None
+    ):
         """Write an event to the DB and broadcast via WebSocket."""
         db = self._db()
         try:
@@ -135,31 +159,42 @@ class AuctionWorker(threading.Thread):
         finally:
             db.close()
         if self.ws_manager:
-            self.ws_manager.broadcast_to_user(self.user_id, {
-                "type": "log.event",
-                "data": {
-                    "message": message,
-                    "event_type": event_type,
-                    "snipe_id": self.snipe_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+            self.ws_manager.broadcast_to_user(
+                self.user_id,
+                {
+                    "type": "log.event",
+                    "data": {
+                        "message": message,
+                        "event_type": event_type,
+                        "snipe_id": self.snipe_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
                 },
-            })
+            )
 
-    def _broadcast_status(self, status: str, extra: dict = None):
+    def _broadcast_status(self, status: str, extra: dict | None = None):
         """Push a snipe status change to WebSocket subscribers."""
         if not self.ws_manager:
             return
         data = {"snipe_id": self.snipe_id, "status": status}
         if extra:
             data.update(extra)
-        self.ws_manager.broadcast_to_user(self.user_id, {
-            "type": "snipe.status_changed",
-            "data": data,
-        })
+        self.ws_manager.broadcast_to_user(
+            self.user_id,
+            {
+                "type": "snipe.status_changed",
+                "data": data,
+            },
+        )
 
-    def _update_and_broadcast(self, fields: dict, log_msg: str = None,
-                               log_type: str = "info", status: str = None,
-                               ws_extra: dict = None):
+    def _update_and_broadcast(
+        self,
+        fields: dict,
+        log_msg: str | None = None,
+        log_type: str = "info",
+        status: str | None = None,
+        ws_extra: dict | None = None,
+    ):
         """Batch DB updates + event logging into a single session."""
         db = self._db()
         try:
@@ -180,26 +215,33 @@ class AuctionWorker(threading.Thread):
         finally:
             db.close()
         if log_msg and self.ws_manager:
-            self.ws_manager.broadcast_to_user(self.user_id, {
-                "type": "log.event",
-                "data": {
-                    "message": log_msg,
-                    "event_type": log_type,
-                    "snipe_id": self.snipe_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+            self.ws_manager.broadcast_to_user(
+                self.user_id,
+                {
+                    "type": "log.event",
+                    "data": {
+                        "message": log_msg,
+                        "event_type": log_type,
+                        "snipe_id": self.snipe_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
                 },
-            })
+            )
         if status and self.ws_manager:
             data = {"snipe_id": self.snipe_id, "status": status}
             if ws_extra:
                 data.update(ws_extra)
-            self.ws_manager.broadcast_to_user(self.user_id, {
-                "type": "snipe.status_changed",
-                "data": data,
-            })
+            self.ws_manager.broadcast_to_user(
+                self.user_id,
+                {
+                    "type": "snipe.status_changed",
+                    "data": data,
+                },
+            )
 
-    def _record_history(self, title: str, url: str, auction_uuid: str,
-                        final_price: float, my_bid: float):
+    def _record_history(
+        self, title: str, url: str, auction_uuid: str, final_price: float, my_bid: float
+    ):
         """Write a won-auction record to history."""
         db = self._db()
         try:
@@ -271,8 +313,10 @@ class AuctionWorker(threading.Thread):
                         continue  # retry the poll immediately with the new session
                     # Re-auth failed — give up
                     self._update_and_broadcast(
-                        fields={"status": SnipeStatus.ERROR,
-                                "error_msg": "Session expired and re-authentication failed"},
+                        fields={
+                            "status": SnipeStatus.ERROR,
+                            "error_msg": "Session expired and re-authentication failed",
+                        },
                         log_msg="Stopped: session expired and could not re-authenticate",
                         log_type="error",
                         status=SnipeStatus.ERROR,
@@ -287,15 +331,15 @@ class AuctionWorker(threading.Thread):
                 self._stop_event.wait(30)
                 continue
 
-            wb         = auction.get("winningBid")
-            cur_bid    = wb["amount"]      if wb else 0.0
-            winner_h   = wb.get("handle")  if wb else None
-            winner_cid = wb["customerId"]  if wb else None
-            history    = auction.get("computedBidHistory") or []
-            end_str    = auction.get("endDate")
-            end_time   = parse_dt(end_str) if end_str else None
+            wb = auction.get("winningBid")
+            cur_bid = wb["amount"] if wb else 0.0
+            winner_h = wb.get("handle") if wb else None
+            winner_cid = wb["customerId"] if wb else None
+            history = auction.get("computedBidHistory") or []
+            end_str = auction.get("endDate")
+            end_time = parse_dt(end_str) if end_str else None
             my_max_raw = auction.get("customerMaxBid")
-            is_me      = (winner_cid == self.customer_id)
+            is_me = winner_cid == self.customer_id
 
             # Log new bids
             for bid in reversed(history):
@@ -304,10 +348,11 @@ class AuctionWorker(threading.Thread):
                     seen_bids.add(key)
                     handle = bid.get("handle", "?")
                     amount = bid.get("amount", 0)
-                    me_tag = " <- YOU" if bid.get("customerId") == self.customer_id else ""
-                    short  = title[:22] + "..." if len(title) > 22 else title
-                    self._log_event(
-                        f"@{handle} ${amount:.2f}{me_tag} ({short})", "bid")
+                    me_tag = (
+                        " <- YOU" if bid.get("customerId") == self.customer_id else ""
+                    )
+                    short = title[:22] + "..." if len(title) > 22 else title
+                    self._log_event(f"@{handle} ${amount:.2f}{me_tag} ({short})", "bid")
 
             self._update_and_broadcast(
                 fields={
@@ -316,7 +361,9 @@ class AuctionWorker(threading.Thread):
                     "winner_id": winner_cid,
                     "bid_count": len(history),
                     "end_time": end_time,
-                    "my_max_bid": float(my_max_raw) if my_max_raw and float(my_max_raw) > 0 else None,
+                    "my_max_bid": float(my_max_raw)
+                    if my_max_raw and float(my_max_raw) > 0
+                    else None,
                     "is_me": is_me,
                 },
                 status=SnipeStatus.WATCHING,
@@ -333,16 +380,18 @@ class AuctionWorker(threading.Thread):
                 self._stop_event.wait(60)
                 continue
 
-            now       = datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc)
             secs_left = (end_time - now).total_seconds()
 
             # ── Auction ended ───────────────────────────────────────────────
             if secs_left <= 0:
                 if bid_placed:
                     final_status = SnipeStatus.WON if is_me else SnipeStatus.LOST
-                    msg = (f"WON: {title[:40]} @ ${cur_bid:.2f}"
-                           if is_me else
-                           f"LOST: {title[:40]} — @{winner_h} ${cur_bid:.2f}")
+                    msg = (
+                        f"WON: {title[:40]} @ ${cur_bid:.2f}"
+                        if is_me
+                        else f"LOST: {title[:40]} — @{winner_h} ${cur_bid:.2f}"
+                    )
                 else:
                     final_status = SnipeStatus.ENDED
                     msg = f"Ended (no snipe fired): {title[:40]}"
@@ -363,37 +412,45 @@ class AuctionWorker(threading.Thread):
                 )
 
                 if bid_placed and is_me:
-                    self._record_history(title, url, auction_uuid, cur_bid,
-                                         self.bid_amount)
+                    self._record_history(
+                        title, url, auction_uuid, cur_bid, self.bid_amount
+                    )
                     if self.ws_manager:
-                        self.ws_manager.broadcast_to_user(self.user_id, {
-                            "type": "snipe.won",
-                            "data": {
-                                "snipe_id": self.snipe_id,
-                                "title": title,
-                                "final_price": cur_bid,
+                        self.ws_manager.broadcast_to_user(
+                            self.user_id,
+                            {
+                                "type": "snipe.won",
+                                "data": {
+                                    "snipe_id": self.snipe_id,
+                                    "title": title,
+                                    "final_price": cur_bid,
+                                },
                             },
-                        })
+                        )
 
                 if self.notification_fn:
-                    self.notification_fn(title, final_status, self.bid_amount,
-                                         cur_bid)
+                    self.notification_fn(title, final_status, self.bid_amount, cur_bid)
                 return
 
             # ── Fire snipe ──────────────────────────────────────────────────
             if not bid_placed and secs_left <= self.snipe_seconds:
                 self._log_event(
                     f"SNIPING {title[:28]}: ${self.bid_amount:.2f} "
-                    f"({secs_left:.1f}s left)", "bid")
+                    f"({secs_left:.1f}s left)",
+                    "bid",
+                )
 
                 try:
                     result = place_bid(
-                        self.bw_session, auction_uuid,
-                        self.customer_id, self.bid_amount)
+                        self.bw_session, auction_uuid, self.customer_id, self.bid_amount
+                    )
 
                     if result.get("requiresCardAuth"):
                         self._update_and_broadcast(
-                            fields={"status": SnipeStatus.ERROR, "error_msg": "Card auth required"},
+                            fields={
+                                "status": SnipeStatus.ERROR,
+                                "error_msg": "Card auth required",
+                            },
                             log_msg="Card auth required — open browser",
                             log_type="error",
                             status=SnipeStatus.ERROR,
@@ -414,27 +471,38 @@ class AuctionWorker(threading.Thread):
                         ws_extra={"bid_amount": self.bid_amount},
                     )
                     if self.ws_manager:
-                        self.ws_manager.broadcast_to_user(self.user_id, {
-                            "type": "snipe.fired",
-                            "data": {
-                                "snipe_id": self.snipe_id,
-                                "bid_amount": self.bid_amount,
-                                "title": title,
+                        self.ws_manager.broadcast_to_user(
+                            self.user_id,
+                            {
+                                "type": "snipe.fired",
+                                "data": {
+                                    "snipe_id": self.snipe_id,
+                                    "bid_amount": self.bid_amount,
+                                    "title": title,
+                                },
                             },
-                        })
+                        )
                     self._stop_event.wait(2)
 
                 except _requests.HTTPError as ex:
                     if ex.response is not None and ex.response.status_code == 401:
-                        self._log_event("Session expired during bid — re-authenticating…", "info")
+                        self._log_event(
+                            "Session expired during bid — re-authenticating…", "info"
+                        )
                         if self._reauthenticate():
                             try:
-                                result = place_bid(self.bw_session, auction_uuid,
-                                                   self.customer_id, self.bid_amount)
+                                result = place_bid(
+                                    self.bw_session,
+                                    auction_uuid,
+                                    self.customer_id,
+                                    self.bid_amount,
+                                )
                                 if result.get("requiresCardAuth"):
                                     self._update_and_broadcast(
-                                        fields={"status": SnipeStatus.ERROR,
-                                                "error_msg": "Card auth required"},
+                                        fields={
+                                            "status": SnipeStatus.ERROR,
+                                            "error_msg": "Card auth required",
+                                        },
                                         log_msg="Card auth required — open browser",
                                         log_type="error",
                                         status=SnipeStatus.ERROR,
@@ -454,19 +522,24 @@ class AuctionWorker(threading.Thread):
                                     ws_extra={"bid_amount": self.bid_amount},
                                 )
                                 if self.ws_manager:
-                                    self.ws_manager.broadcast_to_user(self.user_id, {
-                                        "type": "snipe.fired",
-                                        "data": {
-                                            "snipe_id": self.snipe_id,
-                                            "bid_amount": self.bid_amount,
-                                            "title": title,
+                                    self.ws_manager.broadcast_to_user(
+                                        self.user_id,
+                                        {
+                                            "type": "snipe.fired",
+                                            "data": {
+                                                "snipe_id": self.snipe_id,
+                                                "bid_amount": self.bid_amount,
+                                                "title": title,
+                                            },
                                         },
-                                    })
+                                    )
                                 self._stop_event.wait(2)
                             except Exception as retry_ex:
                                 self._update_and_broadcast(
-                                    fields={"status": SnipeStatus.ERROR,
-                                            "error_msg": str(retry_ex)[:200]},
+                                    fields={
+                                        "status": SnipeStatus.ERROR,
+                                        "error_msg": str(retry_ex)[:200],
+                                    },
                                     log_msg=f"Bid retry failed: {retry_ex}",
                                     log_type="error",
                                     status=SnipeStatus.ERROR,
@@ -475,8 +548,10 @@ class AuctionWorker(threading.Thread):
                                 return
                         else:
                             self._update_and_broadcast(
-                                fields={"status": SnipeStatus.ERROR,
-                                        "error_msg": "Session expired — re-auth failed"},
+                                fields={
+                                    "status": SnipeStatus.ERROR,
+                                    "error_msg": "Session expired — re-auth failed",
+                                },
                                 log_msg="Bid failed: session expired and could not re-authenticate",
                                 log_type="error",
                                 status=SnipeStatus.ERROR,
@@ -490,7 +565,10 @@ class AuctionWorker(threading.Thread):
                         except Exception:
                             detail = str(ex)
                         self._update_and_broadcast(
-                            fields={"status": SnipeStatus.ERROR, "error_msg": str(detail)[:200]},
+                            fields={
+                                "status": SnipeStatus.ERROR,
+                                "error_msg": str(detail)[:200],
+                            },
                             log_msg=f"Bid failed: {detail}",
                             log_type="error",
                             status=SnipeStatus.ERROR,
@@ -500,9 +578,9 @@ class AuctionWorker(threading.Thread):
                 continue
 
             if secs_left <= self.snipe_seconds + 5:
-                poll = 0.5        # tight loop near snipe window
+                poll = 0.5  # tight loop near snipe window
             elif secs_left <= 120:
-                poll = 5.0        # 5-second ticks in the last 2 minutes
+                poll = 5.0  # 5-second ticks in the last 2 minutes
             else:
-                poll = 60.0       # 1-minute ticks while watching far out
+                poll = 60.0  # 1-minute ticks while watching far out
             self._stop_event.wait(poll)

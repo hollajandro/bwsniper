@@ -11,40 +11,50 @@ from ..db.models import User, BuyWanderLogin, HistoryRecord
 from ..db.schemas import HistoryResponse
 from ..dependencies import get_current_user
 from ..services.buywander_api import (
-    create_bw_session, fetch_won_auctions, parse_dt,
+    create_bw_session,
+    fetch_won_auctions,
+    parse_dt,
 )
 
 router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("", response_model=list[HistoryResponse])
-def list_history(login_id: Optional[str] = Query(None),
-                 search: Optional[str] = Query(None),
-                 user: User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
+def list_history(
+    login_id: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Return cached history records.  Use /history/refresh to pull from BW."""
-    q = db.query(HistoryRecord).join(BuyWanderLogin).filter(
-        BuyWanderLogin.user_id == user.id)
+    q = (
+        db.query(HistoryRecord)
+        .join(BuyWanderLogin)
+        .filter(BuyWanderLogin.user_id == user.id)
+    )
     if login_id:
         q = q.filter(HistoryRecord.login_id == login_id)
     if search:
         sq = f"%{search}%"
-        q = q.filter(
-            (HistoryRecord.title.ilike(sq)) |
-            (HistoryRecord.url.ilike(sq))
-        )
+        q = q.filter((HistoryRecord.title.ilike(sq)) | (HistoryRecord.url.ilike(sq)))
     return q.order_by(HistoryRecord.won_at.desc()).all()
 
 
 @router.post("/refresh")
-def refresh_history(login_id: str = Query(...),
-                    user: User = Depends(get_current_user),
-                    db: Session = Depends(get_db)):
+def refresh_history(
+    login_id: str = Query(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Fetch won auctions from BuyWander and upsert into the cache."""
-    login = db.query(BuyWanderLogin).filter(
-        BuyWanderLogin.id == login_id,
-        BuyWanderLogin.user_id == user.id,
-    ).first()
+    login = (
+        db.query(BuyWanderLogin)
+        .filter(
+            BuyWanderLogin.id == login_id,
+            BuyWanderLogin.user_id == user.id,
+        )
+        .first()
+    )
     if not login:
         raise HTTPException(status_code=404, detail="Login not found.")
 
@@ -56,10 +66,10 @@ def refresh_history(login_id: str = Query(...),
 
     # Upsert: skip records already in the DB (by auction_id)
     existing_ids = set(
-        r.auction_id for r in
-        db.query(HistoryRecord.auction_id).filter(
-            HistoryRecord.login_id == login_id
-        ).all()
+        r.auction_id
+        for r in db.query(HistoryRecord.auction_id)
+        .filter(HistoryRecord.login_id == login_id)
+        .all()
     )
 
     added = 0

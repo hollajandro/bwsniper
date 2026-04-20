@@ -32,16 +32,17 @@ def decrypt_value(value: str) -> str:
 
 # Fields per channel that must be encrypted before storing in config_json
 _CREDENTIAL_FIELDS = {
-    "smtp":      ["password"],
-    "telegram":  ["bot_token"],
-    "pushover":  ["user_key", "app_token"],
-    "gotify":    ["token"],
+    "smtp": ["password"],
+    "telegram": ["bot_token"],
+    "pushover": ["user_key", "app_token"],
+    "gotify": ["token"],
 }
 
 
 def encrypt_notifications(data: dict) -> dict:
     """Encrypt credential fields in the notifications sub-dict before saving."""
     import copy
+
     data = copy.deepcopy(data)
     notif = data.get("notifications", {})
     for channel, fields in _CREDENTIAL_FIELDS.items():
@@ -60,6 +61,7 @@ def encrypt_notifications(data: dict) -> dict:
 def decrypt_notifications(data: dict) -> dict:
     """Decrypt credential fields in the notifications sub-dict after loading."""
     import copy
+
     data = copy.deepcopy(data)
     notif = data.get("notifications", {})
     for channel, fields in _CREDENTIAL_FIELDS.items():

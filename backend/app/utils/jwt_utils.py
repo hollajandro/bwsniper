@@ -6,7 +6,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from ..config import SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE, REFRESH_TOKEN_EXPIRE
+from ..config import (
+    SECRET_KEY,
+    JWT_ALGORITHM,
+    ACCESS_TOKEN_EXPIRE,
+    REFRESH_TOKEN_EXPIRE,
+)
 
 
 def create_access_token(user_id: str, email: str, is_admin: bool = False) -> str:

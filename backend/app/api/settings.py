@@ -12,7 +12,10 @@ from ..db.models import User, UserConfig
 from ..db.schemas import SettingsResponse, SettingsUpdate
 from ..dependencies import get_current_user
 from ..services import notification_service
-from ..services.notification_encryption import encrypt_notifications, decrypt_notifications
+from ..services.notification_encryption import (
+    encrypt_notifications,
+    decrypt_notifications,
+)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -25,12 +28,19 @@ _DEFAULT_CONFIG = {
         "notify_on_lost": True,
         "keyword_watches": [],
         "keyword_watch_locations": {},
-        "telegram":  {"enabled": False, "bot_token": "", "chat_id": ""},
-        "smtp":      {"enabled": False, "host": "smtp.gmail.com", "port": 587,
-                      "username": "", "password": "", "from_addr": "", "to_addr": "",
-                      "use_tls": True},
-        "pushover":  {"enabled": False, "user_key": "", "app_token": ""},
-        "gotify":    {"enabled": False, "url": "", "token": "", "priority": 5},
+        "telegram": {"enabled": False, "bot_token": "", "chat_id": ""},
+        "smtp": {
+            "enabled": False,
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "username": "",
+            "password": "",
+            "from_addr": "",
+            "to_addr": "",
+            "use_tls": True,
+        },
+        "pushover": {"enabled": False, "user_key": "", "app_token": ""},
+        "gotify": {"enabled": False, "url": "", "token": "", "priority": 5},
     },
 }
 
@@ -59,8 +69,7 @@ def _get_or_create_config(db: Session, user: User) -> UserConfig:
 
 
 @router.get("", response_model=SettingsResponse)
-def get_settings(user: User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
+def get_settings(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     cfg = _get_or_create_config(db, user)
     try:
         raw = json.loads(cfg.config_json)
@@ -77,17 +86,26 @@ def get_settings(user: User = Depends(get_current_user),
 
 
 @router.put("", response_model=SettingsResponse)
-def update_settings(req: SettingsUpdate,
-                    user: User = Depends(get_current_user),
-                    db: Session = Depends(get_db)):
+def update_settings(
+    req: SettingsUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     cfg = _get_or_create_config(db, user)
 
     if req.version is not None:
         # Compare as ISO strings (truncate to seconds to avoid microsecond drift)
-        db_ts = cfg.updated_at.replace(microsecond=0).isoformat() if cfg.updated_at else None
+        db_ts = (
+            cfg.updated_at.replace(microsecond=0).isoformat()
+            if cfg.updated_at
+            else None
+        )
         req_ts = req.version[:19]  # keep YYYY-MM-DDTHH:MM:SS
         if db_ts and req_ts and db_ts != req_ts:
-            raise HTTPException(status_code=409, detail="Settings were modified in another tab. Please reload.")
+            raise HTTPException(
+                status_code=409,
+                detail="Settings were modified in another tab. Please reload.",
+            )
 
     try:
         current = json.loads(cfg.config_json)
@@ -96,10 +114,12 @@ def update_settings(req: SettingsUpdate,
 
     if req.defaults is not None:
         current["defaults"] = _deep_merge(
-            current.get("defaults", {}), req.defaults.model_dump())
+            current.get("defaults", {}), req.defaults.model_dump()
+        )
     if req.notifications is not None:
         current["notifications"] = _deep_merge(
-            current.get("notifications", {}), req.notifications.model_dump())
+            current.get("notifications", {}), req.notifications.model_dump()
+        )
     if req.serper_api_key is not None:
         current["serper_api_key"] = req.serper_api_key
 
@@ -124,9 +144,9 @@ _VALID_CHANNELS = {"telegram", "smtp", "pushover", "gotify"}
 
 
 @router.post("/test-notification/{channel}")
-def test_notification(channel: str,
-                      user: User = Depends(get_current_user),
-                      db: Session = Depends(get_db)):
+def test_notification(
+    channel: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     if channel not in _VALID_CHANNELS:
         raise HTTPException(status_code=400, detail=f"Unknown channel: {channel}")
 
@@ -142,12 +162,15 @@ def test_notification(channel: str,
 
     try:
         notification_service.send_test(
-            channel, ch_cfg,
+            channel,
+            ch_cfg,
             "BW Sniper — test notification",
             "This is a test message from BW Sniper.",
         )
     except Exception as ex:
-        logging.getLogger(__name__).warning("Test notification failed (%s): %s", channel, ex)
+        logging.getLogger(__name__).warning(
+            "Test notification failed (%s): %s", channel, ex
+        )
         # Sanitize: don't leak internal details to the client
         safe_msg = str(ex)
         if len(safe_msg) > 200:

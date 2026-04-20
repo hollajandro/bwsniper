@@ -7,8 +7,8 @@ import secrets
 from pathlib import Path
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR    = Path(__file__).resolve().parent.parent
-DATA_DIR    = BASE_DIR / "data"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'bwsniper.db'}")
@@ -42,7 +42,7 @@ if ENVIRONMENT == "production" and not _SECRET_KEY_WAS_EXPLICIT:
         "This ensures JWTs survive server restarts and are not auto-generated on each run."
     )
 
-JWT_ALGORITHM       = "HS256"
+JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24h
 REFRESH_TOKEN_EXPIRE = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
@@ -68,6 +68,7 @@ if not FERNET_KEY:
         FERNET_KEY = _FERNET_KEY_FILE.read_text().strip()
     else:
         from cryptography.fernet import Fernet
+
         FERNET_KEY = Fernet.generate_key().decode()
         _FERNET_KEY_FILE.write_text(FERNET_KEY)
         try:
@@ -87,20 +88,24 @@ if not FERNET_KEY and not _FERNET_KEY_FILE.exists():
 
 # ── Cleanup intervals (seconds) ───────────────────────────────────────────────
 CLEANUP_INTERVAL_SEC = int(os.getenv("CLEANUP_INTERVAL_SEC", "60"))
-TOKEN_PURGE_INTERVAL_ITER = int(os.getenv("TOKEN_PURGE_INTERVAL_ITER", "5"))  # iterations before purge
-SESSION_REFRESH_INTERVAL_ITER = int(os.getenv("SESSION_REFRESH_INTERVAL_ITER", "1200"))  # ~20 hours
+TOKEN_PURGE_INTERVAL_ITER = int(
+    os.getenv("TOKEN_PURGE_INTERVAL_ITER", "5")
+)  # iterations before purge
+SESSION_REFRESH_INTERVAL_ITER = int(
+    os.getenv("SESSION_REFRESH_INTERVAL_ITER", "1200")
+)  # ~20 hours
 
 # ── BuyWander upstream ───────────────────────────────────────────────────────
-BW_API_BASE  = os.getenv("BW_API_BASE", "https://api.buywander.com")
+BW_API_BASE = os.getenv("BW_API_BASE", "https://api.buywander.com")
 BW_SITE_BASE = os.getenv("BW_SITE_BASE", "https://www.buywander.com")
 BW_SESSION_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Origin":       BW_SITE_BASE,
-    "Referer":      BW_SITE_BASE + "/",
-    "Accept":       "application/json",
+    "Origin": BW_SITE_BASE,
+    "Referer": BW_SITE_BASE + "/",
+    "Accept": "application/json",
     "Content-Type": "application/json",
 }
 
@@ -120,10 +125,15 @@ BROWSE_PAGE_SIZE = 24
 
 # ── Condition map (for display) ──────────────────────────────────────────────
 COND_MAP = {
-    "New": "New", "AppearsNew": "Appears New",
-    "UsedGood": "Good", "UsedFair": "Fair",
-    "Damaged": "Damaged", "GentlyUsed": "Gently Used",
-    "Used": "Used", "EasyFix": "Easy Fix",
-    "HeavyUse": "Heavy Use", "MajorFix": "Major Fix",
+    "New": "New",
+    "AppearsNew": "Appears New",
+    "UsedGood": "Good",
+    "UsedFair": "Fair",
+    "Damaged": "Damaged",
+    "GentlyUsed": "Gently Used",
+    "Used": "Used",
+    "EasyFix": "Easy Fix",
+    "HeavyUse": "Heavy Use",
+    "MajorFix": "Major Fix",
     "MixedCondition": "Mixed",
 }

@@ -7,24 +7,29 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from ..db.database import get_db
 from ..db.models import User, BuyWanderLogin
 from ..db.schemas import BWLoginCreate, BWLoginResponse, BWLoginUpdate
 from ..dependencies import get_current_user
 from ..utils.crypto import encrypt
 from ..services.buywander_api import (
-    create_bw_session, bw_login, validate_session, serialise_cookies,
+    create_bw_session,
+    bw_login,
+    validate_session,
+    serialise_cookies,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/logins", tags=["buywander-logins"])
 
 
 @router.post("", response_model=BWLoginResponse)
-def add_login(req: BWLoginCreate,
-              user: User = Depends(get_current_user),
-              db: Session = Depends(get_db)):
+def add_login(
+    req: BWLoginCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Add a BuyWander login — authenticates with BW and stores encrypted creds."""
     # Authenticate with BuyWander — no DB writes have happened yet, so no
     # rollback is needed here, but we still clean up carefully.
@@ -49,18 +54,22 @@ def add_login(req: BWLoginCreate,
         )
 
     # Check for duplicate
-    existing = db.query(BuyWanderLogin).filter(
-        BuyWanderLogin.user_id == user.id,
-        BuyWanderLogin.bw_email == req.bw_email,
-    ).first()
+    existing = (
+        db.query(BuyWanderLogin)
+        .filter(
+            BuyWanderLogin.user_id == user.id,
+            BuyWanderLogin.bw_email == req.bw_email,
+        )
+        .first()
+    )
     if existing:
         # Update existing login with fresh creds
         existing.encrypted_password = encrypt(req.bw_password)
-        existing.encrypted_cookies  = encrypt(serialise_cookies(bw_session))
-        existing.customer_id        = customer["id"]
-        existing.display_name       = (customer.get("displayName")
-                                       or customer.get("firstName")
-                                       or req.bw_email)
+        existing.encrypted_cookies = encrypt(serialise_cookies(bw_session))
+        existing.customer_id = customer["id"]
+        existing.display_name = (
+            customer.get("displayName") or customer.get("firstName") or req.bw_email
+        )
         existing.is_active = True
         db.commit()
         db.refresh(existing)
@@ -72,9 +81,9 @@ def add_login(req: BWLoginCreate,
         encrypted_password=encrypt(req.bw_password),
         encrypted_cookies=encrypt(serialise_cookies(bw_session)),
         customer_id=customer["id"],
-        display_name=(customer.get("displayName")
-                      or customer.get("firstName")
-                      or req.bw_email),
+        display_name=(
+            customer.get("displayName") or customer.get("firstName") or req.bw_email
+        ),
     )
     db.add(login)
     db.commit()
@@ -83,22 +92,30 @@ def add_login(req: BWLoginCreate,
 
 
 @router.get("", response_model=list[BWLoginResponse])
-def list_logins(user: User = Depends(get_current_user),
-                db: Session = Depends(get_db)):
-    return db.query(BuyWanderLogin).filter(
-        BuyWanderLogin.user_id == user.id
-    ).order_by(BuyWanderLogin.created_at).all()
+def list_logins(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return (
+        db.query(BuyWanderLogin)
+        .filter(BuyWanderLogin.user_id == user.id)
+        .order_by(BuyWanderLogin.created_at)
+        .all()
+    )
 
 
 @router.put("/{login_id}", response_model=BWLoginResponse)
-def update_login(login_id: str,
-                 req: BWLoginUpdate,
-                 user: User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
-    login = db.query(BuyWanderLogin).filter(
-        BuyWanderLogin.id == login_id,
-        BuyWanderLogin.user_id == user.id,
-    ).first()
+def update_login(
+    login_id: str,
+    req: BWLoginUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    login = (
+        db.query(BuyWanderLogin)
+        .filter(
+            BuyWanderLogin.id == login_id,
+            BuyWanderLogin.user_id == user.id,
+        )
+        .first()
+    )
     if not login:
         raise HTTPException(status_code=404, detail="Login not found.")
 
@@ -117,17 +134,16 @@ def update_login(login_id: str,
         except Exception as ex:
             db.rollback()
             logger.error("Unexpected BW re-auth error: %s", ex)
-            raise HTTPException(status_code=502,
-                                detail="Could not reach BuyWander.")
+            raise HTTPException(status_code=502, detail="Could not reach BuyWander.")
         customer = validate_session(bw_session)
         if customer:
-            login.bw_email           = req.bw_email
+            login.bw_email = req.bw_email
             login.encrypted_password = encrypt(req.bw_password)
-            login.encrypted_cookies  = encrypt(serialise_cookies(bw_session))
-            login.customer_id        = customer["id"]
-            login.display_name       = (customer.get("displayName")
-                                        or customer.get("firstName")
-                                        or req.bw_email)
+            login.encrypted_cookies = encrypt(serialise_cookies(bw_session))
+            login.customer_id = customer["id"]
+            login.display_name = (
+                customer.get("displayName") or customer.get("firstName") or req.bw_email
+            )
 
     db.commit()
     db.refresh(login)
@@ -135,13 +151,17 @@ def update_login(login_id: str,
 
 
 @router.delete("/{login_id}")
-def delete_login(login_id: str,
-                 user: User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
-    login = db.query(BuyWanderLogin).filter(
-        BuyWanderLogin.id == login_id,
-        BuyWanderLogin.user_id == user.id,
-    ).first()
+def delete_login(
+    login_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    login = (
+        db.query(BuyWanderLogin)
+        .filter(
+            BuyWanderLogin.id == login_id,
+            BuyWanderLogin.user_id == user.id,
+        )
+        .first()
+    )
     if not login:
         raise HTTPException(status_code=404, detail="Login not found.")
     db.delete(login)

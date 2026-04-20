@@ -13,11 +13,18 @@ _DEFAULT_CONFIG = {
     "defaults": {"snipe_seconds": 5},
     "notifications": {
         "remind_before_seconds": 300,
-        "telegram":  {"enabled": False, "bot_token": "", "chat_id": ""},
-        "smtp":      {"enabled": False, "host": "smtp.gmail.com", "port": 587,
-                      "username": "", "password": "", "from_addr": "", "to_addr": ""},
-        "pushover":  {"enabled": False, "user_key": "", "app_token": ""},
-        "gotify":    {"enabled": False, "url": "", "token": "", "priority": 5},
+        "telegram": {"enabled": False, "bot_token": "", "chat_id": ""},
+        "smtp": {
+            "enabled": False,
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "username": "",
+            "password": "",
+            "from_addr": "",
+            "to_addr": "",
+        },
+        "pushover": {"enabled": False, "user_key": "", "app_token": ""},
+        "gotify": {"enabled": False, "url": "", "token": "", "priority": 5},
     },
 }
 
@@ -30,8 +37,9 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def register_user(db: Session, email: str, password: str,
-                  display_name: str = None) -> User:
+def register_user(
+    db: Session, email: str, password: str, display_name: str | None = None
+) -> User:
     """Create a new app user.  Raises ValueError if email already taken.
     The very first user registered is automatically granted admin privileges.
     """
@@ -50,6 +58,7 @@ def register_user(db: Session, email: str, password: str,
 
     # Create default config
     import json
+
     cfg = UserConfig(user_id=user.id, config_json=json.dumps(_DEFAULT_CONFIG))
     db.add(cfg)
     db.commit()
@@ -92,7 +101,9 @@ def reauth_bw_login(login, db: Session):
 
     password = decrypt(login.encrypted_password)
     session = create_bw_session()
-    bw_login(session, login.bw_email, password)   # raises ValueError/HTTPError on failure
+    bw_login(
+        session, login.bw_email, password
+    )  # raises ValueError/HTTPError on failure
     login.encrypted_cookies = encrypt(serialise_cookies(session))
     db.commit()
     return session

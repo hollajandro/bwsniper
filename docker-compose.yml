@@ -136,6 +136,28 @@ services:
     networks:
       - bwsniper-network
 
+  # ── Migration Service (one-time use) ──────────────────────────────────────────
+  # Run with: docker compose run --rm db-migration
+  # Mount your old SQLite DB to /mnt/sqlite/app.db before running
+  db-migration:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-backend:${TAG:-latest}
+    container_name: bwsniper-migration
+    user: "0"
+    environment:
+      DATABASE_URL: "postgresql://bwsniper:${POSTGRES_PASSWORD:-bwsniper123}@db:5432/bwsniper"
+    volumes:
+      - backend-data:/backend/data
+      - sqlite-migration:/mnt/sqlite
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "cp /mnt/sqlite/app.db /backend/data/app.db 2>/dev/null || true &&
+             cp /mnt/sqlite/fernet.key /backend/data/fernet.key 2>/dev/null || true &&
+             python /backend/scripts/migrate_from_sqlite.py"
+    networks:
+      - bwsniper-network
+
 # ─────────────────────────────────────────────────────────────────────────────
 networks:
   bwsniper-network:
@@ -151,25 +173,3 @@ volumes:
   # Volume for mounting old SQLite DB during migration
   sqlite-migration:
     driver: local
-
-# ── Migration Service (one-time use) ──────────────────────────────────────────
-# Run with: docker compose run --rm db-migration
-# Mount your old SQLite DB to /app/backend/data/app.db before running
-  db-migration:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-backend:${TAG:-latest}
-    container_name: bwsniper-migration
-    user: "0"
-    environment:
-      DATABASE_URL: "postgresql://bwsniper:${POSTGRES_PASSWORD:-bwsniper123}@db:5432/bwsniper"
-    volumes:
-      - backend-data:/app/backend/data
-      - sqlite-migration:/mnt/sqlite
-    depends_on:
-      db:
-        condition: service_healthy
-    command: >
-      sh -c "cp /mnt/sqlite/app.db /app/backend/data/app.db 2>/dev/null || true &&
-             cp /mnt/sqlite/fernet.key /app/backend/data/fernet.key 2>/dev/null || true &&
-             python /app/backend/scripts/migrate_from_sqlite.py"
-    networks:
-      - bwsniper-network

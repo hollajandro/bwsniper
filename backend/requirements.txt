@@ -10,6 +10,9 @@ aiosqlite~=0.21.0
 python-multipart~=0.0.20
 slowapi~=0.1.9
 
+# PostgreSQL
+psycopg2-binary~=2.9.0
+
 # Migrations
 alembic~=1.16.0
 

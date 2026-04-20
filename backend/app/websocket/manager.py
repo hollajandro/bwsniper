@@ -45,7 +45,8 @@ class ConnectionManager:
                 del self._connections[user_id]
         # Explicitly close the socket to prevent leaks
         try:
-            asyncio.run_coroutine_threadsafe(ws.close(), self._loop)
+            if self._loop is not None:
+                asyncio.run_coroutine_threadsafe(ws.close(), self._loop)
         except Exception:
             pass  # Socket may already be closed or loop unavailable
 

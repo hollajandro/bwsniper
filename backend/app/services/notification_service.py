@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
 from ipaddress import ip_address
 from socket import getaddrinfo
-from typing import Callable
+from typing import Callable, Any, Dict
 from urllib.parse import urlparse
 
 import requests
@@ -94,7 +94,7 @@ def send_test(channel: str, ch_cfg: dict, subject: str, body: str):
 
 # ── Internal ─────────────────────────────────────────────────────────────────
 
-_CHANNEL_MAP = {
+_CHANNEL_MAP: Dict[str, Any] = {
     "telegram": None,  # assigned after function defs below
     "smtp": None,
     "pushover": None,

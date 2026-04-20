@@ -202,7 +202,7 @@ FastAPIInstrumentor.instrument_app(app)
 
 # Rate limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 app.add_middleware(SlowAPIMiddleware)
 
 # CORS — controlled via CORS_ORIGINS env var (see config.py)

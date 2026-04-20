@@ -357,7 +357,7 @@ def fetch_removal_status(session: _requests.Session, store_location_id: str) -> 
     return r.json()
 
 
-def _extract_stripe_pm_id(payment_methods: list) -> Optional[str]:
+def _extract_stripe_pm_id(payment_methods: list | None) -> Optional[str]:
     """Return the first Stripe payment method ID (pm_...) from a BW methods list."""
     for pm in payment_methods or []:
         for field in ("stripePaymentMethodId", "paymentMethodId", "id"):

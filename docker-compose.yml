@@ -154,7 +154,8 @@ volumes:
 
 # ── Migration Service (one-time use) ──────────────────────────────────────────
 # Run with: docker compose run --rm db-migration
-# Mount your old SQLite DB to /app/backend/data/app.db before running
+# Mount your old SQLite DB to /mnt/sqlite/app.db before running
+services:
   db-migration:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-backend:${TAG:-latest}
     container_name: bwsniper-migration

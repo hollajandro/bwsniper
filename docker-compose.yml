@@ -141,21 +141,9 @@ networks:
   bwsniper-network:
     driver: bridge
 
-volumes:
-  postgres-data:
-    driver: local
-  redis-data:
-    driver: local
-  backend-data:
-    driver: local
-  # Volume for mounting old SQLite DB during migration
-  sqlite-migration:
-    driver: local
-
-# ── Migration Service (one-time use) ──────────────────────────────────────────
-# Run with: docker compose run --rm db-migration
-# Mount your old SQLite DB to /mnt/sqlite/app.db before running
-services:
+  # ── Migration Service (one-time use) ──────────────────────────────────────────
+  # Run with: docker compose run --rm db-migration
+  # Mount your old SQLite DB to /mnt/sqlite/app.db before running
   db-migration:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-backend:${TAG:-latest}
     container_name: bwsniper-migration
@@ -174,3 +162,18 @@ services:
              python /app/backend/scripts/migrate_from_sqlite.py"
     networks:
       - bwsniper-network
+
+networks:
+  bwsniper-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  backend-data:
+    driver: local
+  # Volume for mounting old SQLite DB during migration
+  sqlite-migration:
+    driver: local

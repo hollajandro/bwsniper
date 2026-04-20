@@ -66,7 +66,9 @@ def _scan_once():
             if not keywords:
                 continue
 
-            kw_locations = cfg.get("notifications", {}).get("keyword_watch_locations", {})
+            kw_locations = cfg.get("notifications", {}).get(
+                "keyword_watch_locations", {}
+            )
 
             bw_session = create_bw_session(login.encrypted_cookies)
 
@@ -88,10 +90,21 @@ def _scan_once():
                     )
                     if restricted_locs:
                         fetch_kwargs["store_location_ids"] = restricted_locs
-                    result = with_retry(lambda: fetch_active_auctions(bw_session, **fetch_kwargs))
-                    auctions = result.get("auctions", []) if isinstance(result, dict) else result
+                    result = with_retry(
+                        lambda: fetch_active_auctions(bw_session, **fetch_kwargs)
+                    )
+                    auctions = (
+                        result.get("auctions", [])
+                        if isinstance(result, dict)
+                        else result
+                    )
                 except Exception:
-                    log.warning("Keyword search failed for '%s' (user %s)", kw, login.user_id, exc_info=True)
+                    log.warning(
+                        "Keyword search failed for '%s' (user %s)",
+                        kw,
+                        login.user_id,
+                        exc_info=True,
+                    )
                     continue
 
                 now = time.monotonic()
@@ -110,8 +123,12 @@ def _scan_once():
                     title = item.get("title") or auction.get("handle", kw)
                     cur_bid = (auction.get("winningBid") or {}).get("amount", 0)
                     handle = item.get("handle") or auction.get("handle", "")
-                    url = f"https://www.buywander.com/auctions/{handle}" if handle else ""
-                    notification_service.notify_keyword_match(cfg, kw, title, cur_bid, url)
+                    url = (
+                        f"https://www.buywander.com/auctions/{handle}" if handle else ""
+                    )
+                    notification_service.notify_keyword_match(
+                        cfg, kw, title, cur_bid, url
+                    )
     finally:
         db.close()
 

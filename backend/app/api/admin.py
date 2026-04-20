@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 
 from ..db.database import get_db
 from ..db.models import User
-from ..db.schemas import AdminUserView, AdminUserCreate, AdminUserUpdate, AdminPasswordReset
+from ..db.schemas import (
+    AdminUserView,
+    AdminUserCreate,
+    AdminUserUpdate,
+    AdminPasswordReset,
+)
 from ..dependencies import require_admin
 from ..services.auth_service import hash_password
 from ..db.models import UserConfig
@@ -27,16 +32,25 @@ _DEFAULT_CONFIG = {
     "defaults": {"snipe_seconds": 5},
     "notifications": {
         "remind_before_seconds": 300,
-        "telegram":  {"enabled": False, "bot_token": "", "chat_id": ""},
-        "smtp":      {"enabled": False, "host": "smtp.gmail.com", "port": 587,
-                      "username": "", "password": "", "from_addr": "", "to_addr": ""},
-        "pushover":  {"enabled": False, "user_key": "", "app_token": ""},
-        "gotify":    {"enabled": False, "url": "", "token": "", "priority": 5},
+        "telegram": {"enabled": False, "bot_token": "", "chat_id": ""},
+        "smtp": {
+            "enabled": False,
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "username": "",
+            "password": "",
+            "from_addr": "",
+            "to_addr": "",
+        },
+        "pushover": {"enabled": False, "user_key": "", "app_token": ""},
+        "gotify": {"enabled": False, "url": "", "token": "", "priority": 5},
     },
 }
 
 
-@router.post("/users", response_model=AdminUserView, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/users", response_model=AdminUserView, status_code=status.HTTP_201_CREATED
+)
 def create_user(
     body: AdminUserCreate,
     admin: User = Depends(require_admin),
@@ -44,7 +58,9 @@ def create_user(
 ):
     """Create a new user with a preset password."""
     if db.query(User).filter(User.email == body.email).first():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+        )
 
     user = User(
         email=body.email,
@@ -57,7 +73,9 @@ def create_user(
     db.add(UserConfig(user_id=user.id, config_json=_json.dumps(_DEFAULT_CONFIG)))
     db.commit()
     db.refresh(user)
-    logger.info("Admin %s created user %s (is_admin=%s)", admin.email, user.email, user.is_admin)
+    logger.info(
+        "Admin %s created user %s (is_admin=%s)", admin.email, user.email, user.is_admin
+    )
     return user
 
 
@@ -80,7 +98,9 @@ def update_user(
     """Update a user's admin status or display name."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     # Prevent demoting the last admin (applies to self or any other admin)
     if body.is_admin is False and user.is_admin:
@@ -98,7 +118,12 @@ def update_user(
 
     db.commit()
     db.refresh(user)
-    logger.info("Admin %s updated user %s: %s", admin.email, user.email, body.model_dump(exclude_none=True))
+    logger.info(
+        "Admin %s updated user %s: %s",
+        admin.email,
+        user.email,
+        body.model_dump(exclude_none=True),
+    )
     return user
 
 
@@ -112,7 +137,9 @@ def reset_password(
     """Set a new password for any user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     user.password_hash = hash_password(body.new_password)
     db.commit()
@@ -133,7 +160,9 @@ def delete_user(
         )
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     db.delete(user)
     db.commit()

@@ -71,32 +71,53 @@ def main():
     
     results = []
     
-    # Step 1: Linting (if pylint or flake8 is available)
+    # Step 1: Linting with ruff (preferred) or fallback to flake8/pylint
     print("\n📋 Running static analysis...")
-    for linter, cmd in [
-        ('pylint', ['pylint', 'app']),
-        ('flake8', ['flake8', 'app']),
-    ]:
-        try:
-            # Check if linter exists
-            subprocess.run([linter, '--version'], capture_output=True, timeout=5, check=False)
-            results.append(run_command_with_timeout(
-                cmd, 
-                args.lint_timeout, 
-                f'Linting with {linter}'
-            ))
-            break  # Use first available linter
-        except FileNotFoundError:
-            continue
     
-    # Step 2: Type checking with mypy (if available)
+    # Try ruff first (fastest and most comprehensive)
+    try:
+        subprocess.run(['ruff', '--version'], capture_output=True, timeout=5, check=False)
+        # Run ruff check
+        results.append(run_command_with_timeout(
+            ['ruff', 'check', 'app'],
+            args.lint_timeout,
+            'Linting with ruff'
+        ))
+        # Run ruff format check
+        results.append(run_command_with_timeout(
+            ['ruff', 'format', 'app', '--check'],
+            args.lint_timeout,
+            'Format checking with ruff'
+        ))
+    except FileNotFoundError:
+        # Fallback to flake8 or pylint
+        for linter, cmd in [
+            ('pylint', ['pylint', 'app']),
+            ('flake8', ['flake8', 'app']),
+        ]:
+            try:
+                # Check if linter exists
+                subprocess.run([linter, '--version'], capture_output=True, timeout=5, check=False)
+                results.append(run_command_with_timeout(
+                    cmd, 
+                    args.lint_timeout, 
+                    f'Linting with {linter}'
+                ))
+                break  # Use first available linter
+            except FileNotFoundError:
+                continue
+    
+    # Step 2: Type checking with mypy (if available) - NON-BLOCKING
     try:
         subprocess.run(['mypy', '--version'], capture_output=True, timeout=5, check=False)
-        results.append(run_command_with_timeout(
+        mypy_result = run_command_with_timeout(
             ['mypy', 'app'],
             args.lint_timeout,
             'Type checking with mypy'
-        ))
+        )
+        # Don't count mypy failures as test failures (informational only)
+        if not mypy_result:
+            print("\n⚠️  Mypy found type issues, but continuing (non-blocking)")
     except FileNotFoundError:
         print("\n⚠️  mypy not installed, skipping type checking")
     

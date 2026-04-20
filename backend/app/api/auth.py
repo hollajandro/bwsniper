@@ -36,6 +36,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
@@ -43,20 +44,26 @@ def _hash_token(token: str) -> str:
 def _store_refresh_token(db: Session, user_id: str, token: str) -> None:
     """Persist a hashed refresh token with its expiry."""
     expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE)
-    db.add(RefreshToken(
-        user_id=user_id,
-        token_hash=_hash_token(token),
-        expires_at=expires_at,
-    ))
+    db.add(
+        RefreshToken(
+            user_id=user_id,
+            token_hash=_hash_token(token),
+            expires_at=expires_at,
+        )
+    )
     db.commit()
 
 
 def _revoke_refresh_token(db: Session, token: str) -> bool:
     """Mark the given token as revoked.  Returns True if it existed."""
-    rec = db.query(RefreshToken).filter(
-        RefreshToken.token_hash == _hash_token(token),
-        RefreshToken.revoked == False,  # noqa: E712
-    ).first()
+    rec = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.token_hash == _hash_token(token),
+            RefreshToken.revoked == False,  # noqa: E712
+        )
+        .first()
+    )
     if not rec:
         return False
     rec.revoked = True
@@ -66,7 +73,7 @@ def _revoke_refresh_token(db: Session, token: str) -> bool:
 
 def _issue_token_pair(db: Session, user: User) -> TokenResponse:
     """Create a fresh access + refresh token pair and persist the refresh token."""
-    access  = create_access_token(user.id, user.email, is_admin=user.is_admin)
+    access = create_access_token(user.id, user.email, is_admin=user.is_admin)
     refresh = create_refresh_token(user.id)
     _store_refresh_token(db, user.id, refresh)
     return TokenResponse(
@@ -81,10 +88,10 @@ def _issue_token_pair(db: Session, user: User) -> TokenResponse:
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+
 @router.post("/register", response_model=TokenResponse)
 @limiter.limit("10/minute")
-def register(request: Request, req: RegisterRequest,
-             db: Session = Depends(get_db)):
+def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
     try:
         user = register_user(db, req.email, req.password, req.display_name)
     except ValueError as ex:
@@ -94,8 +101,7 @@ def register(request: Request, req: RegisterRequest,
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("20/minute")
-def login(request: Request, req: LoginRequest,
-          db: Session = Depends(get_db)):
+def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate_user(db, req.email, req.password)
     if not user:
         raise HTTPException(
@@ -107,8 +113,7 @@ def login(request: Request, req: LoginRequest,
 
 @router.post("/refresh", response_model=TokenResponse)
 @limiter.limit("30/minute")
-def refresh(request: Request, req: RefreshRequest,
-            db: Session = Depends(get_db)):
+def refresh(request: Request, req: RefreshRequest, db: Session = Depends(get_db)):
     payload = decode_token(req.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
@@ -117,14 +122,19 @@ def refresh(request: Request, req: RefreshRequest,
         )
 
     # Verify the token exists in the DB and has not been revoked
-    rec = db.query(RefreshToken).filter(
-        RefreshToken.token_hash == _hash_token(req.refresh_token),
-        RefreshToken.revoked == False,  # noqa: E712
-    ).first()
+    rec = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.token_hash == _hash_token(req.refresh_token),
+            RefreshToken.revoked == False,  # noqa: E712
+        )
+        .first()
+    )
     if not rec:
         # Token already used or never issued — possible token theft; log it
-        logger.warning("Refresh token not found or already revoked for sub=%s",
-                       payload.get("sub"))
+        logger.warning(
+            "Refresh token not found or already revoked for sub=%s", payload.get("sub")
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token already used or revoked",
@@ -146,8 +156,7 @@ def refresh(request: Request, req: RefreshRequest,
 
 @router.post("/logout")
 @limiter.limit("30/minute")
-def logout(request: Request, req: RefreshRequest,
-           db: Session = Depends(get_db)):
+def logout(request: Request, req: RefreshRequest, db: Session = Depends(get_db)):
     """Revoke a refresh token on explicit logout."""
     if req.refresh_token:
         _revoke_refresh_token(db, req.refresh_token)
@@ -158,8 +167,8 @@ def logout(request: Request, req: RefreshRequest,
 def get_me(user: User = Depends(get_current_user)):
     """Return the current user's identity (authoritative source for frontend)."""
     return {
-        "user_id":      user.id,
-        "email":        user.email,
+        "user_id": user.id,
+        "email": user.email,
         "display_name": user.display_name,
-        "is_admin":     user.is_admin,
+        "is_admin": user.is_admin,
     }

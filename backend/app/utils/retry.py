@@ -29,13 +29,13 @@ def with_retry(fn, max_attempts: int = 3, backoff: float = 2.0):
         requests.exceptions.Timeout,
         requests.exceptions.ChunkedEncodingError,
     )
-    last_exc: BaseException = None
+    last_exc: BaseException | None = None
     for attempt in range(max_attempts):
         try:
             return fn()
         except _RETRYABLE as exc:
             last_exc = exc
             if attempt < max_attempts - 1:
-                time.sleep(backoff * (2 ** attempt))
+                time.sleep(backoff * (2**attempt))
     if last_exc is not None:
-        raise last_exc
+        raise last_exc  # type: ignore[misc]

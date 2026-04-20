@@ -15,7 +15,7 @@ class WorkerPool:
     """Thread-safe registry of running auction workers."""
 
     def __init__(self):
-        self._lock    = threading.Lock()
+        self._lock = threading.Lock()
         self._workers: dict[str, "AuctionWorker"] = {}  # snipe_id → worker
 
     def spawn(self, snipe_id: str, worker: "AuctionWorker") -> bool:

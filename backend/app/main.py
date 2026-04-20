@@ -37,7 +37,12 @@ from starlette.responses import Response
 from .api.auth import limiter
 from .db.database import init_db, SessionLocal
 from .api.router import api_router, ws_router
-from .config import CORS_ORIGINS, CLEANUP_INTERVAL_SEC, TOKEN_PURGE_INTERVAL_ITER, SESSION_REFRESH_INTERVAL_ITER
+from .config import (
+    CORS_ORIGINS,
+    CLEANUP_INTERVAL_SEC,
+    TOKEN_PURGE_INTERVAL_ITER,
+    SESSION_REFRESH_INTERVAL_ITER,
+)
 from .services.snipe_service import restart_active_snipes
 from .services.worker_pool import pool
 from .services import keyword_watcher
@@ -57,18 +62,18 @@ meter = None
 def init_telemetry():
     """Initialize OpenTelemetry tracing if OTEL_EXPORTER_ENDPOINT is set."""
     global tracer, meter
-    
+
     resource = Resource.create({"service.name": "bwsniper-backend"})
-    
+
     # Tracing
     trace.set_tracer_provider(TracerProvider(resource=resource))
     otel_endpoint = os.getenv("OTEL_EXPORTER_ENDPOINT")
     if otel_endpoint:
         span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint))
         trace.get_tracer_provider().add_span_processor(span_processor)
-    
+
     tracer = trace.get_tracer(__name__)
-    
+
     # Metrics
     metrics.set_meter_provider(MeterProvider(resource=resource))
     meter = metrics.get_meter(__name__)
@@ -114,9 +119,13 @@ async def _cleanup_loop():
             _session_refresh_counter = 0
             db = SessionLocal()
             try:
-                logins = db.query(BuyWanderLogin).filter(
-                    BuyWanderLogin.is_active == True  # noqa: E712
-                ).all()
+                logins = (
+                    db.query(BuyWanderLogin)
+                    .filter(
+                        BuyWanderLogin.is_active == True  # noqa: E712
+                    )
+                    .all()
+                )
             except Exception as ex:
                 _logger.warning("Failed to query logins for session refresh: %s", ex)
                 logins = []
@@ -130,8 +139,11 @@ async def _cleanup_loop():
                     reauth_bw_login(login, db)
                     _logger.info("Session refreshed for %s", login.bw_email)
                 except Exception as ex:
-                    _logger.warning("Proactive session refresh failed for %s: %s",
-                                    login.bw_email, ex)
+                    _logger.warning(
+                        "Proactive session refresh failed for %s: %s",
+                        login.bw_email,
+                        ex,
+                    )
                 finally:
                     db.close()
 

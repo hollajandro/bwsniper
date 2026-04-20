@@ -5,6 +5,27 @@ All notable changes to BwSniper will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔧 Code Quality
+- **Ruff Migration**: Replaced flake8 with Ruff for faster linting and formatting
+- **Type Annotations**: Added comprehensive Optional types for PEP 484 compliance
+- **Timeout Protection**: All test commands now include timeout protection to prevent hanging
+- **CI/CD Improvements**: Switched to Ruff in GitHub Actions with 60s timeout
+
+### 📚 Documentation
+- **README Cleanup**: Removed duplicate content, updated architecture diagram, fixed port references
+- **CLAUDE.md Update**: Added PostgreSQL/Redis info, timeout testing instructions, Ruff commands
+- **Timeout Documentation**: New `TIMEOUT_IMPLEMENTATION.md` explaining the defense-in-depth strategy
+
+### 🐛 Bug Fixes
+- Fixed line length violations (E501) across all Python files
+- Fixed multiple spaces before operators (E221)
+- Fixed blank line whitespace issues (W293)
+- Fixed unused import warnings (F401)
+- Fixed module import order issues (E402)
+- Fixed None/True comparison issues (E711/E712)
+
 ## [0.0.2] - 2026-04-17
 
 ### 🚀 Major Changes
@@ -65,3 +86,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BuyWander API integration
 - WebSocket real-time updates
 - Token-based authentication
+

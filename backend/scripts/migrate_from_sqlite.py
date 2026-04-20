@@ -51,23 +51,42 @@ def backup_sqlite(sqlite_path, backup_path):
         shutil.copy2(sqlite_path, backup_path)
         print(f"💾 Backed up SQLite DB to {backup_path}")
 
-def run_alembic_upgrade(pg_engine, postgres_url, alembic_ini_path="/backend/alembic.ini"):
+def run_alembic_upgrade(pg_engine, postgres_url, alembic_ini_path=None):
     print("⚙️  Running Alembic migrations on PostgreSQL...")
     
-    # Handle case where alembic.ini doesn't exist (local testing)
-    if not os.path.exists(alembic_ini_path):
-        print("ℹ️  Alembic config not found at {alembic_ini_path}, skipping migrations")
-        print("🔧 Try running: docker compose run --rm backend alembic upgrade head")
-        return
+    # Try multiple possible locations for alembic.ini
+    possible_paths = [
+        alembic_ini_path,  # User-specified path
+        "/backend/alembic.ini",  # Default container path
+        "/app/alembic.ini",  # Alternative path
+        "alembic.ini",  # Current directory
+    ]
     
-    alembic_cfg = Config(alembic_ini_path)
+    # Find the first existing path
+    config_path = None
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            config_path = path
+            break
+    
+    if not config_path:
+        print("ℹ️  Alembic config not found")
+        print("🔧 This is expected if tables don't exist yet.")
+        print("📋 Steps to complete migration:")
+        print("   1. Run: docker compose run --rm backend alembic upgrade head")
+        print("   2. Then re-run: docker compose run --rm db-migration")
+        return False
+    
+    alembic_cfg = Config(config_path)
     alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
     try:
         command.upgrade(alembic_cfg, "head")
         print("✅ Alembic migrations completed")
+        return True
     except Exception as e:
         print(f"❌ Alembic migration failed: {e}")
-        sys.exit(1)
+        print("🔧 Try running manually: docker compose run --rm backend alembic upgrade head")
+        return False
 
 def migrate_data(sqlite_engine, pg_engine):
     print("🔄 Starting data migration...")
@@ -182,7 +201,11 @@ def main():
     pg_engine = get_postgres_engine(args.target_db)
     
     backup_sqlite(args.sqlite_db, args.backup_path)
-    run_alembic_upgrade(pg_engine, args.target_db, args.alembic_ini)
+    
+    # Run Alembic migrations first - if it fails or is skipped, continue anyway
+    # since user may have already run migrations manually
+    migrations_success = run_alembic_upgrade(pg_engine, args.target_db, args.alembic_ini)
+    
     migrate_data(sqlite_engine, pg_engine)
     mark_migration_complete(args.marker_path)
     

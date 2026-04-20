@@ -51,12 +51,13 @@ def backup_sqlite(sqlite_path, backup_path):
         shutil.copy2(sqlite_path, backup_path)
         print(f"💾 Backed up SQLite DB to {backup_path}")
 
-def run_alembic_upgrade(pg_engine, postgres_url, alembic_ini_path="/app/backend/alembic.ini"):
+def run_alembic_upgrade(pg_engine, postgres_url, alembic_ini_path="/backend/alembic.ini"):
     print("⚙️  Running Alembic migrations on PostgreSQL...")
     
     # Handle case where alembic.ini doesn't exist (local testing)
     if not os.path.exists(alembic_ini_path):
-        print("ℹ️  Alembic config not found, skipping migrations (local test mode)")
+        print("ℹ️  Alembic config not found at {alembic_ini_path}, skipping migrations")
+        print("🔧 Try running: docker compose run --rm backend alembic upgrade head")
         return
     
     alembic_cfg = Config(alembic_ini_path)

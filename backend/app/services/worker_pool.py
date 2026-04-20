@@ -5,14 +5,17 @@ Singleton pattern: one pool per server process, keyed by snipe_id.
 """
 
 import threading
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .auction_worker import AuctionWorker
 
 
 class WorkerPool:
     """Thread-safe registry of running auction workers."""
 
     def __init__(self):
-        self._lock    = threading.Lock()
+        self._lock = threading.Lock()
         self._workers: dict[str, "AuctionWorker"] = {}  # snipe_id → worker
 
     def spawn(self, snipe_id: str, worker: "AuctionWorker") -> bool:

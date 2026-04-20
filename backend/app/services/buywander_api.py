@@ -16,33 +16,49 @@ from typing import Optional
 
 import requests as _requests
 
-log = logging.getLogger(__name__)
-
 from ..config import BW_API_BASE, BW_SITE_BASE, BW_SESSION_HEADERS, BROWSE_PAGE_SIZE
 from ..utils.crypto import decrypt
 
+log = logging.getLogger(__name__)
+
 # Allowlists for filter parameters to prevent injection into BuyWander API
-ALLOWED_CONDITIONS = frozenset({
-    "New", "AppearsNew", "UsedGood", "UsedFair", "Damaged",
-    "GentlyUsed", "Used", "EasyFix", "HeavyUse", "MajorFix", "MixedCondition"
-})
-ALLOWED_AUCTION_FILTERS = frozenset({
-    "BuyNow", "NoReserve", "HasBids", "Featured"
-})
-ALLOWED_SORT = frozenset({
-    "EndingSoonest", "NewlyListed", "LowestBid", "HighestBid",
-    "MostBids", "HighestRetail", "LowestRetail"
-})
+ALLOWED_CONDITIONS = frozenset(
+    {
+        "New",
+        "AppearsNew",
+        "UsedGood",
+        "UsedFair",
+        "Damaged",
+        "GentlyUsed",
+        "Used",
+        "EasyFix",
+        "HeavyUse",
+        "MajorFix",
+        "MixedCondition",
+    }
+)
+ALLOWED_AUCTION_FILTERS = frozenset({"BuyNow", "NoReserve", "HasBids", "Featured"})
+ALLOWED_SORT = frozenset(
+    {
+        "EndingSoonest",
+        "NewlyListed",
+        "LowestBid",
+        "HighestBid",
+        "MostBids",
+        "HighestRetail",
+        "LowestRetail",
+    }
+)
 
 _UUID_RE = re.compile(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
 )
 
 # Patterns that match Stripe publishable and secret keys — used to redact
 # sensitive values from logs so keys are never written to disk/logs in plaintext.
 _STRIPE_KEY_RE = re.compile(
-    r'(pk_live_[A-Za-z0-9]{20,}|pk_test_[A-Za-z0-9]{20,}|'
-    r'sk_live_[A-Za-z0-9]{20,}|sk_test_[A-Za-z0-9]{20,})'
+    r"(pk_live_[A-Za-z0-9]{20,}|pk_test_[A-Za-z0-9]{20,}|"
+    r"sk_live_[A-Za-z0-9]{20,}|sk_test_[A-Za-z0-9]{20,})"
 )
 
 
@@ -50,12 +66,13 @@ def _redact_stripe_keys(text: str) -> str:
     """Replace any Stripe key literals with [REDACTED] in log strings."""
     if not text:
         return text
-    return _STRIPE_KEY_RE.sub('[REDACTED]', text)
+    return _STRIPE_KEY_RE.sub("[REDACTED]", text)
 
 
 # ── Session factory ──────────────────────────────────────────────────────────
 
-def create_bw_session(encrypted_cookies: str = None) -> _requests.Session:
+
+def create_bw_session(encrypted_cookies: str | None = None) -> _requests.Session:
     """Build a requests.Session pre-loaded with BW headers and optional cookies."""
     s = _requests.Session()
     s.headers.update(BW_SESSION_HEADERS)
@@ -75,6 +92,7 @@ def serialise_cookies(session: _requests.Session) -> str:
 
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
+
 
 def validate_session(session: _requests.Session) -> Optional[dict]:
     """Return customer dict if the BW session is valid, else None."""
@@ -107,6 +125,7 @@ def bw_login(session: _requests.Session, email: str, password: str) -> dict:
 
 # ── URL / handle helpers ─────────────────────────────────────────────────────
 
+
 def is_uuid(s: str) -> bool:
     return bool(_UUID_RE.match(s))
 
@@ -120,6 +139,7 @@ def extract_handle(url: str) -> str:
 
 
 # ── Generic helpers ──────────────────────────────────────────────────────────
+
 
 def parse_dt(s: str) -> datetime:
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
@@ -136,9 +156,12 @@ def fmt_time(secs: float) -> str:
 
 # ── Auction read/write ───────────────────────────────────────────────────────
 
+
 def get_auction(session: _requests.Session, handle: str) -> dict:
     if is_uuid(handle):
-        r = session.get(f"{BW_API_BASE}/api/site/Auctions/by-auction/{handle}", timeout=10)
+        r = session.get(
+            f"{BW_API_BASE}/api/site/Auctions/by-auction/{handle}", timeout=10
+        )
     else:
         r = session.get(f"{BW_API_BASE}/api/site/Auctions/{handle}", timeout=10)
     if r.status_code == 404:
@@ -147,8 +170,9 @@ def get_auction(session: _requests.Session, handle: str) -> dict:
     return r.json()
 
 
-def place_bid(session: _requests.Session, auction_id: str,
-              customer_id: str, amount: float) -> dict:
+def place_bid(
+    session: _requests.Session, auction_id: str, customer_id: str, amount: float
+) -> dict:
     r = session.post(
         f"{BW_API_BASE}/api/site/Auctions/{auction_id}/bid",
         json={"auctionId": auction_id, "customerId": customer_id, "amount": amount},
@@ -170,8 +194,12 @@ def fetch_won_auctions(session: _requests.Session, customer_id: str) -> list:
     while True:
         r = session.post(
             f"{BW_API_BASE}/api/site/Auctions/my-auctions",
-            json={"filter": "Won", "pageNumber": page, "pageSize": page_size,
-                  "customerId": customer_id},
+            json={
+                "filter": "Won",
+                "pageNumber": page,
+                "pageSize": page_size,
+                "customerId": customer_id,
+            },
             timeout=15,
         )
         r.raise_for_status()
@@ -188,16 +216,18 @@ def fetch_won_auctions(session: _requests.Session, customer_id: str) -> list:
                 or item.get("storeLocationId")
                 or ""
             )
-            records.append({
-                "title":             item.get("title", "Unknown"),
-                "url":               f"{BW_SITE_BASE}/auctions/{item.get('handle', '')}",
-                "auction_id":        a.get("id", ""),
-                "won_at":            a.get("endDate", ""),
-                "final_price":       a.get("finalAmount") or wb.get("amount") or 0.0,
-                "my_bid":            wb.get("amount") or 0.0,
-                "condition":         item.get("condition", ""),
-                "store_location_id": store_loc_id,
-            })
+            records.append(
+                {
+                    "title": item.get("title", "Unknown"),
+                    "url": f"{BW_SITE_BASE}/auctions/{item.get('handle', '')}",
+                    "auction_id": a.get("id", ""),
+                    "won_at": a.get("endDate", ""),
+                    "final_price": a.get("finalAmount") or wb.get("amount") or 0.0,
+                    "my_bid": wb.get("amount") or 0.0,
+                    "condition": item.get("condition", ""),
+                    "store_location_id": store_loc_id,
+                }
+            )
         if page >= total_pages:
             break
         page += 1
@@ -210,15 +240,15 @@ def fetch_active_auctions(
     page_size: int = BROWSE_PAGE_SIZE,
     sort_by: str = "EndingSoonest",
     search: str = "",
-    conditions: list = None,
-    categories: list = None,
-    auction_filters: list = None,
-    store_location_ids: list = None,
-    min_retail_price: float = None,
-    max_retail_price: float = None,
+    conditions: list | None = None,
+    categories: list | None = None,
+    auction_filters: list | None = None,
+    store_location_ids: list | None = None,
+    min_retail_price: float | None = None,
+    max_retail_price: float | None = None,
 ) -> dict:
     """Browse all active auctions with filters.
-    
+
     Validates filter values against allowlists to prevent injection attacks.
     """
     # Sanitize filter inputs against allowlists
@@ -229,22 +259,22 @@ def fetch_active_auctions(
     if sort_by not in ALLOWED_SORT:
         log.warning("Invalid sort_by '%s', defaulting to EndingSoonest", sort_by)
         sort_by = "EndingSoonest"
-    
+
     payload = {
-        "pageNumber":           page,
-        "pageSize":             page_size,
-        "sortBy":               sort_by,
-        "search":               search or "",
-        "conditions":           conditions or [],
-        "categories":           categories or [],  # categories are free-form from BW
-        "auctionFilters":       auction_filters or [],
-        "storeLocationIds":     store_location_ids or [],
-        "myAuctions":           False,
-        "winning":              False,
-        "losing":               False,
-        "watching":             False,
-        "minRetailPrice":       min_retail_price,
-        "maxRetailPrice":       max_retail_price,
+        "pageNumber": page,
+        "pageSize": page_size,
+        "sortBy": sort_by,
+        "search": search or "",
+        "conditions": conditions or [],
+        "categories": categories or [],  # categories are free-form from BW
+        "auctionFilters": auction_filters or [],
+        "storeLocationIds": store_location_ids or [],
+        "myAuctions": False,
+        "winning": False,
+        "losing": False,
+        "watching": False,
+        "minRetailPrice": min_retail_price,
+        "maxRetailPrice": max_retail_price,
         "additionalCategories": [],
     }
     r = session.post(
@@ -254,8 +284,7 @@ def fetch_active_auctions(
     )
     if not r.ok:
         body = r.text[:300].strip()
-        raise _requests.HTTPError(
-            f"{r.status_code} {r.reason} — {body}", response=r)
+        raise _requests.HTTPError(f"{r.status_code} {r.reason} — {body}", response=r)
     return r.json()
 
 
@@ -267,8 +296,10 @@ def fetch_store_locations(session: _requests.Session) -> list:
 
 # ── Cart / checkout / appointments ───────────────────────────────────────────
 
-def fetch_cart_and_visits(session: _requests.Session, customer_id: str,
-                          store_location_id: str) -> dict:
+
+def fetch_cart_and_visits(
+    session: _requests.Session, customer_id: str, store_location_id: str
+) -> dict:
     r = session.post(
         f"{BW_API_BASE}/api/site/customers/paidItemsAndVisit",
         json={"storeLocationId": store_location_id, "customerId": customer_id},
@@ -281,8 +312,12 @@ def fetch_cart_and_visits(session: _requests.Session, customer_id: str,
 def fetch_reserved_auctions(session: _requests.Session, customer_id: str) -> list:
     r = session.post(
         f"{BW_API_BASE}/api/site/Auctions/my-auctions",
-        json={"filter": "Reserved", "pageNumber": 1, "pageSize": 500,
-              "customerId": customer_id},
+        json={
+            "filter": "Reserved",
+            "pageNumber": 1,
+            "pageSize": 500,
+            "customerId": customer_id,
+        },
         timeout=15,
     )
     r.raise_for_status()
@@ -298,8 +333,9 @@ def fetch_payment_methods(session: _requests.Session) -> list:
     return data.get("value") or []
 
 
-def fetch_open_slots(session: _requests.Session, location_id: str,
-                     day_iso: str, customer_id: str = "") -> list:
+def fetch_open_slots(
+    session: _requests.Session, location_id: str, day_iso: str, customer_id: str = ""
+) -> list:
     params = {"Day": day_iso, "LocationId": location_id}
     if customer_id:
         params["CustomerId"] = customer_id
@@ -321,7 +357,7 @@ def fetch_removal_status(session: _requests.Session, store_location_id: str) -> 
     return r.json()
 
 
-def _extract_stripe_pm_id(payment_methods: list) -> Optional[str]:
+def _extract_stripe_pm_id(payment_methods: list | None) -> Optional[str]:
     """Return the first Stripe payment method ID (pm_...) from a BW methods list."""
     for pm in payment_methods or []:
         for field in ("stripePaymentMethodId", "paymentMethodId", "id"):
@@ -333,7 +369,7 @@ def _extract_stripe_pm_id(payment_methods: list) -> Optional[str]:
 
 # Module-level cache so we only fetch once per process lifetime.
 _stripe_pk_cache: Optional[str] = None
-_STRIPE_PK_RE = re.compile(r'(pk_live_[A-Za-z0-9]{20,})')
+_STRIPE_PK_RE = re.compile(r"(pk_live_[A-Za-z0-9]{20,})")
 
 
 def fetch_stripe_publishable_key(session: _requests.Session) -> Optional[str]:
@@ -376,7 +412,9 @@ def fetch_stripe_publishable_key(session: _requests.Session) -> Optional[str]:
     # browser loads, so no additional authorisation is needed.
     try:
         headers = dict(session.headers)
-        headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        headers["Accept"] = (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        )
         r = session.get(f"{BW_SITE_BASE}/checkout", headers=headers, timeout=12)
         if r.ok:
             m = _STRIPE_PK_RE.search(r.text)
@@ -389,8 +427,9 @@ def fetch_stripe_publishable_key(session: _requests.Session) -> Optional[str]:
     return None
 
 
-def _stripe_confirm_pi(client_secret: str, payment_method_id: str,
-                        publishable_key: str) -> dict:
+def _stripe_confirm_pi(
+    client_secret: str, payment_method_id: str, publishable_key: str
+) -> dict:
     """Confirm a Stripe Payment Intent client-side style (no secret key needed).
 
     Replicates what Stripe.js does: POST to Stripe's /confirm endpoint
@@ -405,9 +444,9 @@ def _stripe_confirm_pi(client_secret: str, payment_method_id: str,
         f"https://api.stripe.com/v1/payment_intents/{pi_id}/confirm",
         headers={"Authorization": f"Bearer {publishable_key}"},
         data={
-            "client_secret":  client_secret,
+            "client_secret": client_secret,
             "payment_method": payment_method_id,
-            "return_url":     "https://www.buywander.com/checkout",
+            "return_url": "https://www.buywander.com/checkout",
         },
         timeout=20,
     )
@@ -416,15 +455,18 @@ def _stripe_confirm_pi(client_secret: str, payment_method_id: str,
 
 
 _BW_CHECKOUT_PAYLOAD_BASE = {
-    "pointsToRedeem":    0,
-    "confirmFreeOrder":  False,
+    "pointsToRedeem": 0,
+    "confirmFreeOrder": False,
     "savePaymentMethod": True,
-    "isFeesOrder":       False,
+    "isFeesOrder": False,
 }
 
 
-def do_pay_checkout(session: _requests.Session, store_location_id: str,
-                    payment_methods: list = None) -> dict:
+def do_pay_checkout(
+    session: _requests.Session,
+    store_location_id: str,
+    payment_methods: list | None = None,
+) -> dict:
     """Two-step BuyWander checkout.
 
     Step 1 — create the Stripe Payment Intent.
@@ -441,7 +483,7 @@ def do_pay_checkout(session: _requests.Session, store_location_id: str,
 
     payload1 = {
         **_BW_CHECKOUT_PAYLOAD_BASE,
-        "storeLocationId":       store_location_id,
+        "storeLocationId": store_location_id,
         "paymentIntentRecordId": None,
     }
     r1 = session.post(
@@ -468,7 +510,9 @@ def do_pay_checkout(session: _requests.Session, store_location_id: str,
     # there is no second checkout/pay call needed.
     pm_id = _extract_stripe_pm_id(payment_methods)
     # Prefer explicit env var; fall back to auto-discovery via BW session
-    stripe_pk = _cfg_pk or (fetch_stripe_publishable_key(session) if pm_id and client_secret else None)
+    stripe_pk = _cfg_pk or (
+        fetch_stripe_publishable_key(session) if pm_id and client_secret else None
+    )
 
     if not (stripe_pk and pm_id and client_secret):
         raise RuntimeError(
@@ -517,20 +561,29 @@ def _parse_api_error(r: _requests.Response) -> str:
         if isinstance(body, str):
             return body
         if isinstance(body, dict):
-            return (body.get("message") or body.get("title")
-                    or body.get("detail") or body.get("error")
-                    or str(body))
+            return (
+                body.get("message")
+                or body.get("title")
+                or body.get("detail")
+                or body.get("error")
+                or str(body)
+            )
     except Exception:
         pass
     return raw or f"HTTP {r.status_code}"
 
 
-def do_create_appointment(session: _requests.Session, location_id: str,
-                           slot_date_iso: str) -> dict:
+def do_create_appointment(
+    session: _requests.Session, location_id: str, slot_date_iso: str
+) -> dict:
     # BuyWander Visits/create uses query params, not a JSON body
     r = session.post(
         f"{BW_API_BASE}/api/site/Visits/create",
-        params={"VisitDate": _to_utc_z(slot_date_iso), "StoreLocationId": location_id, "IsCancelled": "false"},
+        params={
+            "VisitDate": _to_utc_z(slot_date_iso),
+            "StoreLocationId": location_id,
+            "IsCancelled": "false",
+        },
         timeout=15,
     )
     if not r.ok:
@@ -538,31 +591,40 @@ def do_create_appointment(session: _requests.Session, location_id: str,
     return r.json() if r.content else {}
 
 
-def _update_visit(session: _requests.Session, visit_id: str,
-                  date_iso: str, cancelled: bool) -> dict:
+def _update_visit(
+    session: _requests.Session, visit_id: str, date_iso: str, cancelled: bool
+) -> dict:
     r = session.post(
         f"{BW_API_BASE}/api/site/Visits/update",
-        params={"VisitId": visit_id, "VisitDate": _to_utc_z(date_iso),
-                "IsCancelled": "true" if cancelled else "false"},
+        params={
+            "VisitId": visit_id,
+            "VisitDate": _to_utc_z(date_iso),
+            "IsCancelled": "true" if cancelled else "false",
+        },
         timeout=15,
     )
     r.raise_for_status()
     return r.json() if r.content else {}
 
 
-def do_cancel_appointment(session: _requests.Session, visit_id: str,
-                           visit_date_iso: str) -> dict:
+def do_cancel_appointment(
+    session: _requests.Session, visit_id: str, visit_date_iso: str
+) -> dict:
     return _update_visit(session, visit_id, visit_date_iso, cancelled=True)
 
 
-def do_reschedule_appointment(session: _requests.Session, visit_id: str,
-                               new_date_iso: str) -> dict:
+def do_reschedule_appointment(
+    session: _requests.Session, visit_id: str, new_date_iso: str
+) -> dict:
     return _update_visit(session, visit_id, new_date_iso, cancelled=False)
 
 
-def do_remove_from_cart(session: _requests.Session, auction_id: str,
-                        reason: str = "ChangedMind",
-                        notes: str = "No reason provided") -> bool:
+def do_remove_from_cart(
+    session: _requests.Session,
+    auction_id: str,
+    reason: str = "ChangedMind",
+    notes: str = "No reason provided",
+) -> bool:
     r = session.post(
         f"{BW_API_BASE}/api/site/Auctions/removeItemFromCart",
         json={"auctionId": auction_id, "removeReason": reason, "notes": notes},

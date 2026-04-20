@@ -11,12 +11,11 @@ Extracted from the original bw/notifications.py.
 import logging
 import smtplib
 import ssl
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
 from ipaddress import ip_address
-from socket import getaddrinfo, AF_INET, AF_INET6
-from typing import Callable
+from socket import getaddrinfo
+from typing import Callable, Any, Dict
 from urllib.parse import urlparse
 
 import requests
@@ -35,37 +34,47 @@ def any_enabled(cfg: dict) -> bool:
     return any(notif.get(ch, {}).get("enabled") for ch in _CHANNEL_MAP)
 
 
-def notify_reminder(cfg: dict, title: str, secs_left: float,
-                    bid_amount: float, log_fn: Callable = None):
+def notify_reminder(
+    cfg: dict,
+    title: str,
+    secs_left: float,
+    bid_amount: float,
+    log_fn: Callable | None = None,
+):
     """Pre-snipe reminder: 'Auction X ends in N minutes, your bid is $Y'."""
     mins = max(1, int(secs_left / 60))
     subject = f"Snipe reminder: {title[:50]}"
-    body    = (f"Auction \"{title}\" ends in ~{mins} minute(s).\n"
-               f"Your bid: ${bid_amount:.2f}\n"
-               f"Time left: {int(secs_left)}s")
+    body = (
+        f'Auction "{title}" ends in ~{mins} minute(s).\n'
+        f"Your bid: ${bid_amount:.2f}\n"
+        f"Time left: {int(secs_left)}s"
+    )
     _dispatch(cfg, subject, body, log_fn)
 
 
-def notify_outcome(cfg: dict, title: str, status: str,
-                   bid_amount: float, final_price: float,
-                   log_fn: Callable = None):
+def notify_outcome(
+    cfg: dict,
+    title: str,
+    status: str,
+    bid_amount: float,
+    final_price: float,
+    log_fn: Callable | None = None,
+):
     """Post-snipe result: Won / Lost / Ended / Error."""
     subject = f"Snipe {status}: {title[:50]}"
-    body    = (f"Auction: {title}\n"
-               f"Result:  {status}\n"
-               f"Your bid: ${bid_amount:.2f}\n"
-               f"Final price: ${final_price:.2f}")
+    body = (
+        f"Auction: {title}\n"
+        f"Result:  {status}\n"
+        f"Your bid: ${bid_amount:.2f}\n"
+        f"Final price: ${final_price:.2f}"
+    )
     _dispatch(cfg, subject, body, log_fn)
 
 
-def notify_keyword_match(cfg: dict, keyword: str, title: str,
-                         cur_bid: float, url: str):
+def notify_keyword_match(cfg: dict, keyword: str, title: str, cur_bid: float, url: str):
     """Keyword watch: a new auction matching a keyword was found."""
     subject = f"New auction: {keyword}"
-    body = (f"Keyword: \"{keyword}\"\n"
-            f"Title: {title}\n"
-            f"Current bid: ${cur_bid:.2f}\n"
-            f"{url}")
+    body = f'Keyword: "{keyword}"\nTitle: {title}\nCurrent bid: ${cur_bid:.2f}\n{url}'
     _dispatch(cfg, subject, body)
 
 
@@ -85,15 +94,15 @@ def send_test(channel: str, ch_cfg: dict, subject: str, body: str):
 
 # ── Internal ─────────────────────────────────────────────────────────────────
 
-_CHANNEL_MAP = {
+_CHANNEL_MAP: Dict[str, Any] = {
     "telegram": None,  # assigned after function defs below
-    "smtp":     None,
+    "smtp": None,
     "pushover": None,
-    "gotify":   None,
+    "gotify": None,
 }
 
 
-def _dispatch(cfg: dict, subject: str, body: str, log_fn: Callable = None):
+def _dispatch(cfg: dict, subject: str, body: str, log_fn: Callable | None = None):
     """Fire all enabled channels via the bounded thread pool.
 
     Credentials stored in cfg may be encrypted — decrypt them before use.
@@ -109,10 +118,7 @@ def _dispatch(cfg: dict, subject: str, body: str, log_fn: Callable = None):
 
 def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
     """Send a notification and queue for retry on failure."""
-    from ..db.database import SessionLocal
-    from ..db.models import NotificationQueue
-    from datetime import datetime, timezone, timedelta
-    
+
     try:
         fn(ch_cfg, subject, body)
         if log_fn:
@@ -121,7 +127,7 @@ def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
         log.warning("Notification failed (%s): %s", name, ex)
         if log_fn:
             log_fn(f"Notification failed ({name}): {ex}")
-        
+
         # Queue for retry if we can get user_id from context
         # For now, log the failure; full DLQ integration would require
         # passing user_id through the call chain
@@ -130,30 +136,35 @@ def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
 
 def _retry_queued_notifications():
     """Process notification queue and retry failed sends.
-    
+
     Called periodically by the cleanup task in main.py.
     """
     from ..db.database import SessionLocal
     from ..db.models import NotificationQueue
-    from datetime import datetime, timezone
-    
+    from datetime import datetime, timezone, timedelta
+
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
         # Fetch notifications ready for retry
-        due = db.query(NotificationQueue).filter(
-            (NotificationQueue.next_retry_at == None) |  # noqa: E712
-            (NotificationQueue.next_retry_at <= now),
-            NotificationQueue.retry_count < NotificationQueue.max_retries
-        ).limit(50).all()
-        
+        due = (
+            db.query(NotificationQueue)
+            .filter(
+                (NotificationQueue.next_retry_at.is_(None))
+                | (NotificationQueue.next_retry_at <= now),
+                NotificationQueue.retry_count < NotificationQueue.max_retries,
+            )
+            .limit(50)
+            .all()
+        )
+
         for notif in due:
             channel_fn = _CHANNEL_MAP.get(notif.channel)
             if not channel_fn:
                 notif.last_error = f"Unknown channel: {notif.channel}"
                 notif.retry_count += 1
                 continue
-            
+
             try:
                 channel_fn({"enabled": True}, notif.subject, notif.body)
                 # Success - remove from queue
@@ -162,9 +173,9 @@ def _retry_queued_notifications():
                 notif.last_error = str(ex)[:512]
                 notif.retry_count += 1
                 # Exponential backoff: 1min, 4min, 16min
-                delay_minutes = (3 ** (notif.retry_count - 1))
+                delay_minutes = 3 ** (notif.retry_count - 1)
                 notif.next_retry_at = now + timedelta(minutes=delay_minutes)
-        
+
         db.commit()
     except Exception as ex:
         log.error("Failed to process notification queue: %s", ex)
@@ -201,14 +212,17 @@ def _validate_url(url: str, *, allow_private: bool = False) -> str:
     if not parsed.hostname:
         raise ValueError("URL has no hostname")
     if not allow_private and _is_private_host(parsed.hostname):
-        raise ValueError(f"URL resolves to a private/internal address: {parsed.hostname}")
+        raise ValueError(
+            f"URL resolves to a private/internal address: {parsed.hostname}"
+        )
     return url
 
 
 # ── Channel senders ──────────────────────────────────────────────────────────
 
+
 def _send_telegram(cfg: dict, subject: str, body: str):
-    token   = cfg.get("bot_token", "")
+    token = cfg.get("bot_token", "")
     chat_id = cfg.get("chat_id", "")
     if not token or not chat_id:
         return
@@ -221,19 +235,19 @@ def _send_telegram(cfg: dict, subject: str, body: str):
 
 
 def _send_smtp(cfg: dict, subject: str, body: str):
-    host      = cfg.get("host", "smtp.gmail.com")
-    port      = _safe_int(cfg.get("port", 587), 587)
-    username  = cfg.get("username", "")
-    password  = cfg.get("password", "")
+    host = cfg.get("host", "smtp.gmail.com")
+    port = _safe_int(cfg.get("port", 587), 587)
+    username = cfg.get("username", "")
+    password = cfg.get("password", "")
     from_addr = cfg.get("from_addr", username)
-    to_addr   = cfg.get("to_addr", "")
-    use_tls   = cfg.get("use_tls", True)
+    to_addr = cfg.get("to_addr", "")
+    use_tls = cfg.get("use_tls", True)
     if not to_addr:
         return
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"]    = from_addr
-    msg["To"]      = to_addr
+    msg["From"] = from_addr
+    msg["To"] = to_addr
     needs_auth = bool(username and password and username.lower() not in ("", "none"))
     with smtplib.SMTP(host, port, timeout=15) as s:
         if use_tls:
@@ -243,26 +257,28 @@ def _send_smtp(cfg: dict, subject: str, body: str):
             try:
                 s.login(username, password)
             except smtplib.SMTPNotSupportedError:
-                log.warning("SMTP server %s does not support AUTH — sending unauthenticated", host)
+                log.warning(
+                    "SMTP server %s does not support AUTH — sending unauthenticated",
+                    host,
+                )
         s.send_message(msg)
 
 
 def _send_pushover(cfg: dict, subject: str, body: str):
-    user_key  = cfg.get("user_key", "")
+    user_key = cfg.get("user_key", "")
     app_token = cfg.get("app_token", "")
     if not user_key or not app_token:
         return
     requests.post(
         "https://api.pushover.net/1/messages.json",
-        data={"token": app_token, "user": user_key,
-              "title": subject, "message": body},
+        data={"token": app_token, "user": user_key, "title": subject, "message": body},
         timeout=10,
     )
 
 
 def _send_gotify(cfg: dict, subject: str, body: str):
-    url      = cfg.get("url", "").rstrip("/")
-    token    = cfg.get("token", "")
+    url = cfg.get("url", "").rstrip("/")
+    token = cfg.get("token", "")
     priority = _safe_int(cfg.get("priority", 5), 5)
     if not url or not token:
         return
@@ -277,6 +293,6 @@ def _send_gotify(cfg: dict, subject: str, body: str):
 
 # Wire up channel map after function definitions
 _CHANNEL_MAP["telegram"] = _send_telegram
-_CHANNEL_MAP["smtp"]     = _send_smtp
+_CHANNEL_MAP["smtp"] = _send_smtp
 _CHANNEL_MAP["pushover"] = _send_pushover
-_CHANNEL_MAP["gotify"]   = _send_gotify
+_CHANNEL_MAP["gotify"] = _send_gotify

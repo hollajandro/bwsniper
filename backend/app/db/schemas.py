@@ -12,14 +12,17 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     display_name: Optional[str] = Field(default=None, max_length=100)
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -30,15 +33,18 @@ class TokenResponse(BaseModel):
     display_name: Optional[str] = None
     is_admin: bool = False
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
 
 # ─── BuyWander Login ──────────────────────────────────────────────────────────
 
+
 class BWLoginCreate(BaseModel):
     bw_email: EmailStr
     bw_password: str
+
 
 class BWLoginResponse(BaseModel):
     id: str
@@ -51,6 +57,7 @@ class BWLoginResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class BWLoginUpdate(BaseModel):
     is_active: Optional[bool] = None
     bw_email: Optional[EmailStr] = None
@@ -60,7 +67,7 @@ class BWLoginUpdate(BaseModel):
 # ─── Snipes ───────────────────────────────────────────────────────────────────
 
 _ALLOWED_SNIPE_DOMAINS = frozenset({"buywander.com", "www.buywander.com"})
-_MAX_BID = 50_000.0   # sanity ceiling; adjust as needed
+_MAX_BID = 50_000.0  # sanity ceiling; adjust as needed
 
 
 def _validate_buywander_url(v: str) -> str:
@@ -71,9 +78,7 @@ def _validate_buywander_url(v: str) -> str:
         if not domain:
             raise ValueError("URL must include a domain.")
         if domain not in _ALLOWED_SNIPE_DOMAINS:
-            raise ValueError(
-                f"URL must be a buywander.com auction URL, got: {domain}"
-            )
+            raise ValueError(f"URL must be a buywander.com auction URL, got: {domain}")
     except ValueError:
         raise
     except Exception:
@@ -98,6 +103,7 @@ class SnipeUpdate(BaseModel):
     bid_amount: Optional[float] = Field(default=None, gt=0, lt=_MAX_BID)
     snipe_seconds: Optional[int] = Field(default=None, ge=1, le=120)
     notify: Optional[bool] = None
+
 
 class SnipeResponse(BaseModel):
     id: str
@@ -132,6 +138,7 @@ class SnipeResponse(BaseModel):
 
 # ─── History ──────────────────────────────────────────────────────────────────
 
+
 class HistoryResponse(BaseModel):
     id: str
     login_id: str
@@ -150,10 +157,17 @@ class HistoryResponse(BaseModel):
 
 # ─── Auctions (pass-through from BuyWander) ──────────────────────────────────
 
-_ALLOWED_SORT = frozenset({
-    "EndingSoonest", "NewlyListed", "LowestBid", "HighestBid",
-    "MostBids", "HighestRetail", "LowestRetail",
-})
+_ALLOWED_SORT = frozenset(
+    {
+        "EndingSoonest",
+        "NewlyListed",
+        "LowestBid",
+        "HighestBid",
+        "MostBids",
+        "HighestRetail",
+        "LowestRetail",
+    }
+)
 
 
 class AuctionSearchParams(BaseModel):
@@ -172,21 +186,27 @@ class AuctionSearchParams(BaseModel):
     @classmethod
     def validate_sort_by(cls, v: str) -> str:
         if v not in _ALLOWED_SORT:
-            raise ValueError(f"sort_by must be one of: {', '.join(sorted(_ALLOWED_SORT))}")
+            raise ValueError(
+                f"sort_by must be one of: {', '.join(sorted(_ALLOWED_SORT))}"
+            )
         return v
 
 
 # ─── Cart ─────────────────────────────────────────────────────────────────────
 
+
 class PayRequest(BaseModel):
     store_location_id: str
+
 
 class AppointmentCreate(BaseModel):
     location_id: str
     visit_date_iso: str
 
+
 class AppointmentReschedule(BaseModel):
     new_date_iso: str
+
 
 class CartRemoveItem(BaseModel):
     auction_id: str
@@ -195,6 +215,7 @@ class CartRemoveItem(BaseModel):
 
 
 # ─── Watchlist ────────────────────────────────────────────────────────────────
+
 
 class WatchlistCreate(BaseModel):
     login_id: Optional[str] = None
@@ -223,6 +244,7 @@ class WatchlistResponse(BaseModel):
 
 
 # ─── Settings ─────────────────────────────────────────────────────────────────
+
 
 class DefaultSettings(BaseModel):
     snipe_seconds: int = Field(default=5, ge=1, le=120)
@@ -264,7 +286,9 @@ class NotificationSettings(BaseModel):
     notify_on_won: bool = True
     notify_on_lost: bool = True
     keyword_watches: list[str] = Field(default_factory=list)
-    keyword_watch_locations: dict = Field(default_factory=dict)  # {keyword: [location_id, ...]}
+    keyword_watch_locations: dict = Field(
+        default_factory=dict
+    )  # {keyword: [location_id, ...]}
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
     smtp: SmtpSettings = Field(default_factory=SmtpSettings)
     pushover: PushoverSettings = Field(default_factory=PushoverSettings)
@@ -287,6 +311,7 @@ class SettingsUpdate(BaseModel):
 
 # ─── Admin ───────────────────────────────────────────────────────────────────
 
+
 class AdminUserView(BaseModel):
     id: str
     email: str
@@ -297,21 +322,25 @@ class AdminUserView(BaseModel):
     class Config:
         from_attributes = True
 
+
 class AdminUserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     display_name: Optional[str] = Field(default=None, max_length=100)
     is_admin: bool = False
 
+
 class AdminUserUpdate(BaseModel):
     is_admin: Optional[bool] = None
     display_name: Optional[str] = Field(default=None, max_length=100)
+
 
 class AdminPasswordReset(BaseModel):
     new_password: str = Field(min_length=8)
 
 
 # ─── WebSocket events ────────────────────────────────────────────────────────
+
 
 class WSMessage(BaseModel):
     type: str

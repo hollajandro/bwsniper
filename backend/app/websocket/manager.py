@@ -4,7 +4,6 @@ backend/app/websocket/manager.py — WebSocket ConnectionManager.
 Tracks connected clients per user_id and provides broadcast methods.
 """
 
-import json
 import asyncio
 import logging
 from typing import Optional
@@ -46,7 +45,8 @@ class ConnectionManager:
                 del self._connections[user_id]
         # Explicitly close the socket to prevent leaks
         try:
-            asyncio.run_coroutine_threadsafe(ws.close(), self._loop)
+            if self._loop is not None:
+                asyncio.run_coroutine_threadsafe(ws.close(), self._loop)
         except Exception:
             pass  # Socket may already be closed or loop unavailable
 
@@ -76,13 +76,13 @@ class ConnectionManager:
         if loop is None or not loop.is_running():
             log.warning(
                 "WebSocket broadcast dropped — no event loop available (user_id=%s, type=%s)",
-                user_id, message.get("type", "unknown"),
+                user_id,
+                message.get("type", "unknown"),
             )
             return
         for ws in conns:
             try:
-                asyncio.run_coroutine_threadsafe(
-                    self._send_json(ws, message), loop)
+                asyncio.run_coroutine_threadsafe(self._send_json(ws, message), loop)
             except RuntimeError as e:
                 # Loop may be closed during shutdown; log but don't crash
                 log.debug("Broadcast failed (loop closed?): %s", e)

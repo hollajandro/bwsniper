@@ -62,7 +62,9 @@ def _fetch_shopping(query: str, api_key: str) -> list[dict]:
         raise HTTPException(status_code=502, detail="Price compare service error.")
     except _requests.exceptions.RequestException as exc:
         log.warning("Serper request failed: %s", exc)
-        raise HTTPException(status_code=502, detail="Price compare service unavailable.")
+        raise HTTPException(
+            status_code=502, detail="Price compare service unavailable."
+        )
 
     shopping = resp.json().get("shopping", [])
     parsed = []
@@ -71,13 +73,15 @@ def _fetch_shopping(query: str, api_key: str) -> list[dict]:
         price_num = _parse_price(price_str)
         if price_num is None or price_num <= 0:
             continue
-        parsed.append({
-            "title":     item.get("title", ""),
-            "price":     price_num,
-            "price_str": price_str,
-            "source":    item.get("source", ""),
-            "link":      item.get("link", ""),
-        })
+        parsed.append(
+            {
+                "title": item.get("title", ""),
+                "price": price_num,
+                "price_str": price_str,
+                "source": item.get("source", ""),
+                "link": item.get("link", ""),
+            }
+        )
 
     parsed.sort(key=lambda x: x["price"])
     return parsed[:_MAX_RESULTS]

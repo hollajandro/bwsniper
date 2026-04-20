@@ -8,7 +8,6 @@ import logging
 from sqlalchemy.orm import Session as DBSession
 
 from ..db.models import Snipe, BuyWanderLogin, SnipeStatus
-from ..utils.crypto import decrypt
 from .buywander_api import extract_handle, create_bw_session
 from .auction_worker import AuctionWorker
 from .worker_pool import pool

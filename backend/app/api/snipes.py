@@ -51,8 +51,10 @@ def _make_notification_fn(user_id: str, snipe_id_ref: list):
             return
         notif = cfg.get("notifications", {})
         if snipe_notify is None:  # use global setting
-            if status == "Won"  and not notif.get("notify_on_won",  True): return
-            if status == "Lost" and not notif.get("notify_on_lost", True): return
+            if status == "Won" and not notif.get("notify_on_won", True):
+                return
+            if status == "Lost" and not notif.get("notify_on_lost", True):
+                return
         notification_service.notify_outcome(cfg, title, status, bid_amount, final_price)
 
     return _fn

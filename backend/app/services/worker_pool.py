@@ -5,7 +5,10 @@ Singleton pattern: one pool per server process, keyed by snipe_id.
 """
 
 import threading
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .auction_worker import AuctionWorker
 
 
 class WorkerPool:

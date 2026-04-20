@@ -11,8 +11,6 @@ from sqlalchemy.orm import Session
 
 from ..db.database import get_db
 from ..db.models import User, BuyWanderLogin
-
-log = logging.getLogger(__name__)
 from ..db.schemas import PayRequest, AppointmentCreate, AppointmentReschedule, CartRemoveItem
 from ..dependencies import get_current_user
 from ..services.auth_service import reauth_bw_login
@@ -24,6 +22,8 @@ from ..services.buywander_api import (
     do_cancel_appointment, do_remove_from_cart,
     _redact_stripe_keys,  # re-export for local use
 )
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 

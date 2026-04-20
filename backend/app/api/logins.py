@@ -7,8 +7,6 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from ..db.database import get_db
 from ..db.models import User, BuyWanderLogin
 from ..db.schemas import BWLoginCreate, BWLoginResponse, BWLoginUpdate
@@ -17,6 +15,8 @@ from ..utils.crypto import encrypt
 from ..services.buywander_api import (
     create_bw_session, bw_login, validate_session, serialise_cookies,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/logins", tags=["buywander-logins"])
 

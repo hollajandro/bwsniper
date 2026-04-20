@@ -3,11 +3,13 @@ backend/app/db/database.py — SQLAlchemy engine, session factory, and init.
 """
 
 from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
+
+from ..config import DATABASE_URL
+
 import logging as _logging
 
 _logger = _logging.getLogger(__name__)
-from ..config import DATABASE_URL
 
 # SQLite needs check_same_thread=False for FastAPI multi-thread access
 connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}

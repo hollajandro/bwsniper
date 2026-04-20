@@ -19,6 +19,10 @@ from sqlalchemy import (
     Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, Index,
 )
 from sqlalchemy.orm import declarative_base, relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import InstanceState
 
 Base = declarative_base()
 

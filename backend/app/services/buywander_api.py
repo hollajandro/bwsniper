@@ -16,10 +16,10 @@ from typing import Optional
 
 import requests as _requests
 
-log = logging.getLogger(__name__)
-
 from ..config import BW_API_BASE, BW_SITE_BASE, BW_SESSION_HEADERS, BROWSE_PAGE_SIZE
 from ..utils.crypto import decrypt
+
+log = logging.getLogger(__name__)
 
 # Allowlists for filter parameters to prevent injection into BuyWander API
 ALLOWED_CONDITIONS = frozenset({

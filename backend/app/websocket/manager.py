@@ -4,7 +4,6 @@ backend/app/websocket/manager.py — WebSocket ConnectionManager.
 Tracks connected clients per user_id and provides broadcast methods.
 """
 
-import json
 import asyncio
 import logging
 from typing import Optional

@@ -5,11 +5,8 @@ These proxy through to the BuyWander API using a specific login's session.
 """
 
 import logging
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-
-log = logging.getLogger(__name__)
 
 from ..db.database import get_db
 from ..db.models import User, BuyWanderLogin
@@ -20,6 +17,8 @@ from ..services.buywander_api import (
     fetch_store_locations,
 )
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auctions", tags=["auctions"])
 
 
@@ -28,7 +27,7 @@ def _get_bw_session(db: Session, user: User, login_id: str):
     login = db.query(BuyWanderLogin).filter(
         BuyWanderLogin.id == login_id,
         BuyWanderLogin.user_id == user.id,
-        BuyWanderLogin.is_active == True,
+        BuyWanderLogin.is_active,
     ).first()
     if not login:
         raise HTTPException(status_code=404, detail="BuyWander login not found.")

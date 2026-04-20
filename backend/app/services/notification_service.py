@@ -11,11 +11,10 @@ Extracted from the original bw/notifications.py.
 import logging
 import smtplib
 import ssl
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
 from ipaddress import ip_address
-from socket import getaddrinfo, AF_INET, AF_INET6
+from socket import getaddrinfo
 from typing import Callable
 from urllib.parse import urlparse
 
@@ -109,9 +108,6 @@ def _dispatch(cfg: dict, subject: str, body: str, log_fn: Callable = None):
 
 def _safe_send(fn, ch_cfg, subject, body, log_fn, name):
     """Send a notification and queue for retry on failure."""
-    from ..db.database import SessionLocal
-    from ..db.models import NotificationQueue
-    from datetime import datetime, timezone, timedelta
     
     try:
         fn(ch_cfg, subject, body)
@@ -135,14 +131,14 @@ def _retry_queued_notifications():
     """
     from ..db.database import SessionLocal
     from ..db.models import NotificationQueue
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
     
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
         # Fetch notifications ready for retry
         due = db.query(NotificationQueue).filter(
-            (NotificationQueue.next_retry_at == None) |  # noqa: E712
+            (NotificationQueue.next_retry_at.is_(None)) |
             (NotificationQueue.next_retry_at <= now),
             NotificationQueue.retry_count < NotificationQueue.max_retries
         ).limit(50).all()

@@ -273,10 +273,13 @@ def fetch_active_auctions(
         "winning": False,
         "losing": False,
         "watching": False,
-        "minRetailPrice": min_retail_price,
-        "maxRetailPrice": max_retail_price,
         "additionalCategories": [],
     }
+    # Only include price filters if they have valid numeric values
+    if min_retail_price is not None:
+        payload["minRetailPrice"] = min_retail_price
+    if max_retail_price is not None:
+        payload["maxRetailPrice"] = max_retail_price
     r = session.post(
         f"{BW_API_BASE}/api/site/Auctions/search",
         json=payload,

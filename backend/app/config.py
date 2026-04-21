@@ -104,9 +104,10 @@ BW_SESSION_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
     "Origin": BW_SITE_BASE,
-    "Referer": BW_SITE_BASE + "/",
+    "Referer": BW_SITE_BASE + "/auctions",
     "Accept": "application/json",
     "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
 }
 
 # ── Price comparison (Serper.dev Google Shopping) ────────────────────────────

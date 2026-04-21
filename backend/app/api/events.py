@@ -23,7 +23,7 @@ def list_events(
     q = db.query(EventLog).filter(EventLog.user_id == user.id)
     if login_id:
         q = q.filter(EventLog.login_id == login_id)
-    events = q.order_by(EventLog.timestamp.desc()).limit(limit).all()
+    events = q.order_by(EventLog.created_at.desc()).limit(limit).all()
     return [
         {
             "id": ev.id,
@@ -31,7 +31,7 @@ def list_events(
             "event_type": ev.event_type,
             "message": ev.message,
             "auction_id": ev.auction_id,
-            "timestamp": ev.timestamp.isoformat() if ev.timestamp else None,
+            "timestamp": ev.created_at.isoformat() if ev.created_at else None,
         }
         for ev in events
     ]

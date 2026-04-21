@@ -268,13 +268,15 @@ def fetch_active_auctions(
         "conditions": conditions or [],
         "categories": categories or [],  # categories are free-form from BW
         "auctionFilters": auction_filters or [],
-        "storeLocationIds": store_location_ids or [],
         "myAuctions": False,
         "winning": False,
         "losing": False,
         "watching": False,
         "additionalCategories": [],
     }
+    # Only include storeLocationIds if provided (empty list returns no results)
+    if store_location_ids:
+        payload["storeLocationIds"] = store_location_ids
     # Only include price filters if they have valid numeric values
     if min_retail_price is not None:
         payload["minRetailPrice"] = min_retail_price

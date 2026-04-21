@@ -14,3 +14,58 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Custom component classes */
+.field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #1f2937; /* gray-800 */
+  border: 1px solid #374151; /* gray-700 */
+  border-radius: 0.5rem;
+  color: #f9fafb; /* gray-50 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.field::placeholder {
+  color: #9ca3af; /* gray-400 */
+}
+
+.field:focus {
+  outline: none;
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.card {
+  background-color: #111827; /* gray-900 */
+  border: 1px solid #1f2937; /* gray-800 */
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6; /* blue-500 */
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb; /* blue-600 */
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

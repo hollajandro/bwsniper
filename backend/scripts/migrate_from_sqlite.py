@@ -95,13 +95,25 @@ def migrate_data(sqlite_engine, pg_engine):
     pg_session = sessionmaker(bind=pg_engine)()
     
     # List of tables to migrate (excluding alembic_version)
-    metadata = MetaData()
-    metadata.reflect(bind=sqlite_engine)
+    # Order matters for foreign key constraints!
+    TABLE_ORDER = [
+        "users",  # Must be first - referenced by other tables
+        "buywander_logins",  # References users
+        "refresh_tokens",  # References users
+        "snipes",  # References buywander_logins
+        "watchlist",  # References users and buywander_logins
+        "user_config",
+        "history",
+        "event_log",
+    ]
     
     migrated_count = 0
+    sqlite_metadata = MetaData()
+    sqlite_metadata.reflect(bind=sqlite_engine)
     
-    for table_name in metadata.tables:
-        if table_name == "alembic_version":
+    for table_name in TABLE_ORDER:
+        if table_name not in sqlite_metadata.tables:
+            print(f"  • Skipping table {table_name} (not in SQLite)")
             continue
             
         print(f"  • Migrating table: {table_name}...")
@@ -116,40 +128,71 @@ def migrate_data(sqlite_engine, pg_engine):
                 continue
             
             # Fetch all rows from SQLite
-            sqlite_table = metadata.tables[table_name]
+            sqlite_table = sqlite_metadata.tables[table_name]
             rows = sqlite_session.query(sqlite_table).all()
             
             if not rows:
                 print(f"    ↪️  Skipped (empty)")
                 continue
             
+            # Get PG column names for validation
+            pg_columns = {col.name for col in pg_table.columns}
+            
             # Insert into PostgreSQL
+            inserted_count = 0
             for row in rows:
                 data = {}
                 for column in sqlite_table.columns:
                     val = getattr(row, column.name)
+                    
+                    # Skip columns that don't exist in PG
+                    if column.name not in pg_columns:
+                        print(f"    ⚠️  Skipping unmapped column: {column.name}")
+                        continue
+                    
                     # Handle datetime conversion if needed
                     if isinstance(val, datetime) and val.tzinfo is None:
                         val = val.replace(tzinfo=timezone.utc)
+                    
+                    # Handle NOT NULL constraints with defaults
+                    if val is None:
+                        if column.name == "is_admin":
+                            val = False  # Default to non-admin
+                        elif column.name == "is_active":
+                            val = True  # Default to active
+                        elif column.name == "revoked":
+                            val = False  # Default to not revoked
+                        elif column.name == "bid_placed":
+                            val = False
+                        elif column.name == "reminder_sent":
+                            val = False
+                    
                     data[column.name] = val
                 
-                # Remove 'id' if it's auto-increment in PG and we want to regenerate, 
-                # but usually we want to preserve IDs for relationships.
-                # We'll insert with explicit IDs.
+                # Remove keys that aren't in PG table
+                data = {k: v for k, v in data.items() if k in pg_columns}
                 
                 insert_stmt = pg_table.insert().values(**data)
                 try:
                     pg_session.execute(insert_stmt)
+                    inserted_count += 1
                 except Exception as e:
-                    # Handle unique constraint violations (e.g. duplicate IDs)
-                    if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+                    error_msg = str(e)
+                    # Handle unique constraint violations
+                    if "unique" in error_msg.lower() or "duplicate" in error_msg.lower():
                         print(f"    ⚠️  Skipping duplicate row in {table_name}: {data.get('id')}")
                         continue
-                    raise
+                    # Handle foreign key violations - skip and warn
+                    if "foreign key" in error_msg.lower():
+                        print(f"    ⚠️  Skipping row with invalid FK in {table_name}: {data.get('id')}")
+                        continue
+                    # For other errors, log and continue
+                    print(f"    ⚠️  Error inserting row: {error_msg[:100]}")
+                    continue
             
             pg_session.commit()
-            migrated_count += len(rows)
-            print(f"    ✅ Migrated {len(rows)} rows")
+            migrated_count += inserted_count
+            print(f"    ✅ Migrated {inserted_count} rows")
             
         except Exception as e:
             print(f"    ❌ Error migrating {table_name}: {e}")

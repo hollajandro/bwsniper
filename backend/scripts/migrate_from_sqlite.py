@@ -144,18 +144,34 @@ def migrate_data(sqlite_engine, pg_engine):
                     data[column.name] = val
                 # Remove keys that aren't in PG table
                 data = {k: v for k, v in data.items() if k in pg_columns}
+                
+                # Ensure NOT NULL columns have values
+                for col in pg_table.columns:
+                    if not col.nullable and col.name not in data:
+                        if col.name == "is_admin":
+                            data[col.name] = False
+                        elif col.name == "is_active":
+                            data[col.name] = True
+                        elif col.name == "id":
+                            # Skip if id is missing, let DB auto-generate or handle separately
+                            continue
+                        else:
+                            data[col.name] = None  # Will likely fail, but explicit
+                
                 insert_stmt = pg_table.insert().values(**data)
                 try:
                     pg_session.execute(insert_stmt)
                     inserted_count += 1
                 except Exception as e:
                     error_msg = str(e)
+                    # Rollback the failed transaction to continue with next rows
+                    pg_session.rollback()
                     # Handle unique constraint violations
                     if "unique" in error_msg.lower() or "duplicate" in error_msg.lower():
                         print(f"    ⚠️  Skipping duplicate row in {table_name}: {data.get('id')}")
                         continue
                     # Handle foreign key violations - skip and warn
-                    if "foreign key" in error_msg.lower():
+                    if "foreign key" in error_msg.lower() or "violates not-null" in error_msg.lower():
                         print(f"    ⚠️  Skipping row with invalid FK in {table_name}: {data.get('id')}")
                         continue
                     # For other errors, log and continue

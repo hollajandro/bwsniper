@@ -280,6 +280,9 @@ def fetch_active_auctions(
         payload["minRetailPrice"] = min_retail_price
     if max_retail_price is not None:
         payload["maxRetailPrice"] = max_retail_price
+    
+    log.debug("Fetching auctions with payload: %s", payload)
+    
     r = session.post(
         f"{BW_API_BASE}/api/site/Auctions/search",
         json=payload,
@@ -287,6 +290,7 @@ def fetch_active_auctions(
     )
     if not r.ok:
         body = r.text[:300].strip()
+        log.error("Auction search failed: %s %s — Body: %s, Payload: %s", r.status_code, r.reason, body, payload)
         raise _requests.HTTPError(f"{r.status_code} {r.reason} — {body}", response=r)
     return r.json()
 

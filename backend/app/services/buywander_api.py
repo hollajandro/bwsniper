@@ -41,7 +41,7 @@ ALLOWED_AUCTION_FILTERS = frozenset({"BuyNow", "NoReserve", "HasBids", "Featured
 ALLOWED_SORT = frozenset(
     {
         "EndingSoonest",
-        "NewlyListed",
+        "NewArrivals",
         "LowestBid",
         "HighestBid",
         "MostBids",
@@ -49,7 +49,8 @@ ALLOWED_SORT = frozenset(
         "LowestRetail",
     }
 )
-SORT_FALLBACKS = {"NewlyListed": "EndingSoonest"}
+SORT_ALIASES = {"NewlyListed": "NewArrivals"}
+SORT_FALLBACKS = {"NewArrivals": "EndingSoonest"}
 
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
@@ -257,6 +258,8 @@ def fetch_active_auctions(
         conditions = [c for c in conditions if c in ALLOWED_CONDITIONS]
     if auction_filters:
         auction_filters = [f for f in auction_filters if f in ALLOWED_AUCTION_FILTERS]
+    sort_by = SORT_ALIASES.get(sort_by, sort_by)
+
     if sort_by not in ALLOWED_SORT:
         log.warning("Invalid sort_by '%s', defaulting to EndingSoonest", sort_by)
         sort_by = "EndingSoonest"

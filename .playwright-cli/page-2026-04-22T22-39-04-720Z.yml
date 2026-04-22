@@ -1,0 +1,1036 @@
+- generic [ref=e11]:
+  - banner [ref=e12]:
+    - navigation [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - link [ref=e17] [cursor=pointer]:
+            - /url: /
+            - img [ref=e18]
+          - generic [ref=e29]:
+            - link "Shop" [ref=e30] [cursor=pointer]:
+              - /url: /auctions
+              - text: Shop
+            - generic [ref=e32] [cursor=pointer]: How it works
+            - link "About Us" [ref=e33] [cursor=pointer]:
+              - /url: /about-us
+            - link "FAQs" [ref=e34] [cursor=pointer]:
+              - /url: https://support.buywander.com/
+            - link "Contact Us" [ref=e35] [cursor=pointer]:
+              - /url: /contact
+            - link "WanderBucks" [ref=e36] [cursor=pointer]:
+              - /url: /rewards
+            - link "Locations" [ref=e37] [cursor=pointer]:
+              - /url: /locations-hours
+            - text: 
+            - text:  
+        - generic [ref=e39]:
+          - link [ref=e40] [cursor=pointer]:
+            - /url: /dashboard/profile
+          - link [ref=e42] [cursor=pointer]:
+            - /url: /dashboard/cart
+    - generic [ref=e45]:
+      - generic [ref=e46]:
+        - paragraph [ref=e49]: How it works
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: "1"
+          - paragraph [ref=e54]: Sign Up
+        - generic [ref=e57]:
+          - paragraph [ref=e58]: "2"
+          - paragraph [ref=e59]: Bid & Win
+        - generic [ref=e62]:
+          - paragraph [ref=e63]: "3"
+          - paragraph [ref=e64]: Schedule Pick-Up
+        - generic [ref=e67]:
+          - paragraph [ref=e68]: "4"
+          - paragraph [ref=e69]: 7-Day Hassle-Free Returns
+      - generic [ref=e70]:
+        - button "Read more" [ref=e71] [cursor=pointer]
+        - button [ref=e72] [cursor=pointer]
+    - generic [ref=e77]:
+      - generic [ref=e78] [cursor=pointer]:
+        - generic [ref=e79]: Winning
+        - generic [ref=e80]: "0"
+      - generic [ref=e81] [cursor=pointer]:
+        - generic [ref=e82]: Losing
+        - generic [ref=e83]: "0"
+      - generic [ref=e84] [cursor=pointer]:
+        - generic [ref=e85]: Watching
+        - generic [ref=e86]: "0"
+  - text: 
+  - main [ref=e87]:
+    - generic [ref=e89]:
+      - complementary [ref=e90]:
+        - generic [ref=e91]:
+          - button "No filters applied" [disabled] [ref=e93]: No filters applied
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - heading "Condition" [level=3] [ref=e97]
+              - generic [ref=e98]:
+                - button "Appears New" [ref=e100] [cursor=pointer]:
+                  - generic [ref=e102]: Appears New
+                - button "Gently Used" [ref=e104] [cursor=pointer]:
+                  - generic [ref=e106]: Gently Used
+                - button "Used" [ref=e108] [cursor=pointer]:
+                  - generic [ref=e110]: Used
+                - button "Heavy Use" [ref=e112] [cursor=pointer]:
+                  - generic [ref=e114]: Heavy Use
+                - button "Easy Fix" [ref=e116] [cursor=pointer]:
+                  - generic [ref=e118]: Easy Fix
+                - button "Major Fix" [ref=e120] [cursor=pointer]:
+                  - generic [ref=e122]: Major Fix
+                - button "Mixed Condition" [ref=e124] [cursor=pointer]:
+                  - generic [ref=e126]: Mixed Condition
+            - separator [ref=e127]
+            - generic [ref=e128]:
+              - heading "Quick Actions" [level=3] [ref=e129]
+              - generic [ref=e130]:
+                - button "💰 3$ Or Less" [ref=e131] [cursor=pointer]:
+                  - generic [ref=e133]: 💰
+                  - generic [ref=e134]: 3$ Or Less
+                - button "⏰ Ends Today" [ref=e135] [cursor=pointer]:
+                  - generic [ref=e137]: ⏰
+                  - generic [ref=e138]: Ends Today
+                - button "📅 Ends Tomorrow" [ref=e139] [cursor=pointer]:
+                  - generic [ref=e141]: 📅
+                  - generic [ref=e142]: Ends Tomorrow
+                - button "🔥 Hottest" [ref=e143] [cursor=pointer]:
+                  - generic [ref=e145]: 🔥
+                  - generic [ref=e146]: Hottest
+                - button "💵 No Bids Yet" [ref=e147] [cursor=pointer]:
+                  - generic [ref=e149]: 💵
+                  - generic [ref=e150]: No Bids Yet
+                - button "🎯 Over 90% Off" [ref=e151] [cursor=pointer]:
+                  - generic [ref=e153]: 🎯
+                  - generic [ref=e154]: Over 90% Off
+            - separator [ref=e155]
+            - generic [ref=e156]:
+              - heading "Categories" [level=3] [ref=e157]
+              - generic [ref=e334]:
+                - generic [ref=e335]:
+                  - generic [ref=e336] [cursor=pointer]:
+                    - checkbox "Automotive" [ref=e338]
+                    - generic [ref=e340]: Automotive
+                  - generic [ref=e341]: "2358"
+                - generic [ref=e342]:
+                  - generic [ref=e343] [cursor=pointer]:
+                    - checkbox "Beauty & Health" [ref=e345]
+                    - generic [ref=e347]: Beauty & Health
+                  - generic [ref=e348]: "2270"
+                - generic [ref=e349]:
+                  - generic [ref=e350] [cursor=pointer]:
+                    - checkbox "Clothing" [ref=e352]
+                    - generic [ref=e354]: Clothing
+                  - generic [ref=e355]: "2675"
+                - generic [ref=e356]:
+                  - generic [ref=e357] [cursor=pointer]:
+                    - checkbox "Computer & Office" [ref=e359]
+                    - generic [ref=e361]: Computer & Office
+                  - generic [ref=e362]: "738"
+                - generic [ref=e363]:
+                  - generic [ref=e364] [cursor=pointer]:
+                    - checkbox "Electronics" [ref=e366]
+                    - generic [ref=e368]: Electronics
+                  - generic [ref=e369]: "2837"
+                - generic [ref=e370]:
+                  - generic [ref=e371] [cursor=pointer]:
+                    - checkbox "Food & Grocery" [ref=e373]
+                    - generic [ref=e375]: Food & Grocery
+                  - generic [ref=e376]: "50"
+                - generic [ref=e377]:
+                  - generic [ref=e378] [cursor=pointer]:
+                    - checkbox "Garden & Tools" [ref=e380]
+                    - generic [ref=e382]: Garden & Tools
+                  - generic [ref=e383]: "4216"
+                - generic [ref=e384]:
+                  - generic [ref=e385] [cursor=pointer]:
+                    - checkbox "General Merchandise" [ref=e387]
+                    - generic [ref=e389]: General Merchandise
+                  - generic [ref=e390]: "1259"
+                - generic [ref=e391]:
+                  - generic [ref=e392] [cursor=pointer]:
+                    - checkbox "Home & Kitchen" [ref=e394]
+                    - generic [ref=e396]: Home & Kitchen
+                  - generic [ref=e397]: "11870"
+                - generic [ref=e398]:
+                  - generic [ref=e399] [cursor=pointer]:
+                    - checkbox "Industrial" [ref=e401]
+                    - generic [ref=e403]: Industrial
+                  - generic [ref=e404]: "404"
+                - generic [ref=e405]:
+                  - generic [ref=e406] [cursor=pointer]:
+                    - checkbox "Jewelry & Watches" [ref=e408]
+                    - generic [ref=e410]: Jewelry & Watches
+                  - generic [ref=e411]: "56"
+                - generic [ref=e412]:
+                  - generic [ref=e413] [cursor=pointer]:
+                    - checkbox "Outdoors" [ref=e415]
+                    - generic [ref=e417]: Outdoors
+                  - generic [ref=e418]: "347"
+                - generic [ref=e419]:
+                  - generic [ref=e420] [cursor=pointer]:
+                    - checkbox "Pet Supplies" [ref=e422]
+                    - generic [ref=e424]: Pet Supplies
+                  - generic [ref=e425]: "1166"
+                - generic [ref=e426]:
+                  - generic [ref=e427] [cursor=pointer]:
+                    - checkbox "Shoes" [ref=e429]
+                    - generic [ref=e431]: Shoes
+                  - generic [ref=e432]: "147"
+                - generic [ref=e433]:
+                  - generic [ref=e434] [cursor=pointer]:
+                    - checkbox "Sports & Outdoors" [ref=e436]
+                    - generic [ref=e438]: Sports & Outdoors
+                  - generic [ref=e439]: "1428"
+                - generic [ref=e440]:
+                  - generic [ref=e441] [cursor=pointer]:
+                    - checkbox "Toys, Kids, & Baby" [ref=e443]
+                    - generic [ref=e445]: Toys, Kids, & Baby
+                  - generic [ref=e446]: "2686"
+            - separator [ref=e158]
+            - generic [ref=e159]:
+              - heading "Additional Categories" [level=3] [ref=e160]
+              - generic [ref=e161]:
+                - generic [ref=e162]:
+                  - generic [ref=e163] [cursor=pointer]:
+                    - checkbox "Multi Pack" [ref=e165]
+                    - generic [ref=e167]: Multi Pack
+                  - generic [ref=e447]: "425"
+                - generic [ref=e168]:
+                  - generic [ref=e169] [cursor=pointer]:
+                    - checkbox "Mystery Box" [ref=e171]
+                    - generic [ref=e173]: Mystery Box
+                  - generic [ref=e448]: "427"
+                - generic [ref=e174]:
+                  - generic [ref=e175] [cursor=pointer]:
+                    - checkbox "Pallet" [ref=e177]
+                    - generic [ref=e179]: Pallet
+                  - generic [ref=e449]: "22"
+                - generic [ref=e180]:
+                  - generic [ref=e181] [cursor=pointer]:
+                    - checkbox "Variety Pack" [ref=e183]
+                    - generic [ref=e185]: Variety Pack
+                  - generic [ref=e450]: "28"
+            - separator [ref=e186]
+            - generic [ref=e187]:
+              - heading "Retail Price Range" [level=3] [ref=e188]
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - generic [ref=e191]: Min Price
+                  - spinbutton "Min" [ref=e193]
+                - generic [ref=e194]:
+                  - generic [ref=e195]: Max Price
+                  - spinbutton "Max" [ref=e197]
+      - generic [ref=e198]:
+        - generic [ref=e200]:
+          - textbox "Search auctions..." [ref=e202]
+          - generic [ref=e204]:
+            - generic [ref=e205]:
+              - heading "Items for pickup at" [level=3] [ref=e206]
+              - generic [ref=e207]:
+                - generic [ref=e208]: 
+                - text: All locations
+            - generic [ref=e209] [cursor=pointer]: 
+          - generic [ref=e210]:
+            - generic [ref=e211]:
+              - button [ref=e212] [cursor=pointer]
+              - button [ref=e215] [cursor=pointer]
+            - button "New Arrivals" [ref=e1598] [cursor=pointer]:
+              - generic [ref=e219]: 
+              - generic [ref=e220]: New Arrivals
+        - text:  
+        - generic [ref=e1600]:
+          - generic [ref=e1601] [cursor=pointer]:
+            - img "Product Image" [ref=e1603]
+            - paragraph [ref=e1604]: Appears New
+            - generic [ref=e1605]:
+              - generic [ref=e1606]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1608]:
+                - generic [ref=e1610]:
+                  - paragraph [ref=e1611]: No bids
+                  - paragraph [ref=e1613]: $29.99
+                - alert [ref=e1618]:
+                  - generic [ref=e1619]:
+                    - generic [ref=e1620]: 
+                    - link "Please log in to place a bid" [ref=e1622]:
+                      - /url: /auth/login
+                - paragraph [ref=e1623]: Ends Sun at 7:24 PM
+          - generic [ref=e1624] [cursor=pointer]:
+            - img "Product Image" [ref=e1626]
+            - paragraph [ref=e1627]: Appears New
+            - generic [ref=e1628]:
+              - generic [ref=e1629]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1631]:
+                - generic [ref=e1633]:
+                  - paragraph [ref=e1634]: No bids
+                  - paragraph [ref=e1636]: $29.99
+                - alert [ref=e1641]:
+                  - generic [ref=e1642]:
+                    - generic [ref=e1643]: 
+                    - link "Please log in to place a bid" [ref=e1645]:
+                      - /url: /auth/login
+                - paragraph [ref=e1646]: Ends Sun at 7:09 PM
+          - generic [ref=e1647] [cursor=pointer]:
+            - generic [ref=e1648]:
+              - button [ref=e1651]
+              - img "Product Image" [ref=e1653]
+            - paragraph [ref=e1654]: Easy Fix
+            - generic [ref=e1655]:
+              - generic [ref=e1656]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1658]:
+                - generic [ref=e1660]:
+                  - paragraph [ref=e1661]: No bids
+                  - paragraph [ref=e1663]: $29.99
+                - alert [ref=e1668]:
+                  - generic [ref=e1669]:
+                    - generic [ref=e1670]: 
+                    - link "Please log in to place a bid" [ref=e1672]:
+                      - /url: /auth/login
+                - paragraph [ref=e1673]: Ends Sun at 6:45 PM
+          - generic [ref=e1674] [cursor=pointer]:
+            - generic [ref=e1675]:
+              - button [ref=e1678]
+              - img "Product Image" [ref=e1680]
+            - paragraph [ref=e1681]: Easy Fix
+            - generic [ref=e1682]:
+              - generic [ref=e1683]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1685]:
+                - generic [ref=e1687]:
+                  - paragraph [ref=e1688]: No bids
+                  - paragraph [ref=e1690]: $29.99
+                - alert [ref=e1695]:
+                  - generic [ref=e1696]:
+                    - generic [ref=e1697]: 
+                    - link "Please log in to place a bid" [ref=e1699]:
+                      - /url: /auth/login
+                - paragraph [ref=e1700]: Ends Sun at 6:30 PM
+          - generic [ref=e1701] [cursor=pointer]:
+            - generic [ref=e1702]:
+              - button [ref=e1705]
+              - img "Product Image" [ref=e1707]
+            - paragraph [ref=e1708]: Easy Fix
+            - generic [ref=e1709]:
+              - generic [ref=e1710]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1712]:
+                - generic [ref=e1714]:
+                  - paragraph [ref=e1715]: No bids
+                  - paragraph [ref=e1717]: $29.99
+                - alert [ref=e1722]:
+                  - generic [ref=e1723]:
+                    - generic [ref=e1724]: 
+                    - link "Please log in to place a bid" [ref=e1726]:
+                      - /url: /auth/login
+                - paragraph [ref=e1727]: Ends Sun at 6:15 PM
+          - generic [ref=e1728] [cursor=pointer]:
+            - generic [ref=e1729]:
+              - button [ref=e1732]
+              - img "Product Image" [ref=e1734]
+            - paragraph [ref=e1735]: Easy Fix
+            - generic [ref=e1736]:
+              - generic [ref=e1737]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1739]:
+                - generic [ref=e1741]:
+                  - paragraph [ref=e1742]: No bids
+                  - paragraph [ref=e1744]: $29.99
+                - alert [ref=e1749]:
+                  - generic [ref=e1750]:
+                    - generic [ref=e1751]: 
+                    - link "Please log in to place a bid" [ref=e1753]:
+                      - /url: /auth/login
+                - paragraph [ref=e1754]: Ends Sun at 8:00 PM
+          - generic [ref=e1755] [cursor=pointer]:
+            - generic [ref=e1756]:
+              - button [ref=e1759]
+              - img "Product Image" [ref=e1761]
+            - paragraph [ref=e1762]: Easy Fix
+            - generic [ref=e1763]:
+              - generic [ref=e1764]: Happy & Polly Retro Art Bloomy Flower Cat House with Scratcher
+              - generic [ref=e1766]:
+                - generic [ref=e1768]:
+                  - paragraph [ref=e1769]: No bids
+                  - paragraph [ref=e1771]: $29.99
+                - alert [ref=e1776]:
+                  - generic [ref=e1777]:
+                    - generic [ref=e1778]: 
+                    - link "Please log in to place a bid" [ref=e1780]:
+                      - /url: /auth/login
+                - paragraph [ref=e1781]: Ends Sun at 7:45 PM
+          - generic [ref=e1782] [cursor=pointer]:
+            - img "Product Image" [ref=e1784]
+            - paragraph [ref=e1785]: Appears New
+            - generic [ref=e1786]:
+              - generic [ref=e1787]: Potato Sack Race Bags, Egg Spoon Race, 3 Legged Races Bands,Bean bag Race， 32PCS Outdoor Games Sets for Birthday Party Field Day Family Reunion Carnival, Kids Adults Outside Yard Lawn Easter Game
+              - generic [ref=e1789]:
+                - generic [ref=e1791]:
+                  - paragraph [ref=e1792]: $3.00
+                  - paragraph [ref=e1794]: $26.99
+                - alert [ref=e1799]:
+                  - generic [ref=e1800]:
+                    - generic [ref=e1801]: 
+                    - link "Please log in to place a bid" [ref=e1803]:
+                      - /url: /auth/login
+                - paragraph [ref=e1804]: Ends Sat at 7:49 PM
+          - generic [ref=e1805] [cursor=pointer]:
+            - img "Product Image" [ref=e1807]
+            - paragraph [ref=e1808]: Appears New
+            - generic [ref=e1809]:
+              - generic [ref=e1810]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1812]:
+                - generic [ref=e1814]:
+                  - paragraph [ref=e1815]: No bids
+                  - paragraph [ref=e1817]: $19.99
+                - alert [ref=e1822]:
+                  - generic [ref=e1823]:
+                    - generic [ref=e1824]: 
+                    - link "Please log in to place a bid" [ref=e1826]:
+                      - /url: /auth/login
+                - paragraph [ref=e1827]: Ends Sun at 6:13 PM
+          - generic [ref=e1828] [cursor=pointer]:
+            - img "Product Image" [ref=e1830]
+            - paragraph [ref=e1831]: Appears New
+            - generic [ref=e1832]:
+              - generic [ref=e1833]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1835]:
+                - generic [ref=e1837]:
+                  - paragraph [ref=e1838]: No bids
+                  - paragraph [ref=e1840]: $19.99
+                - alert [ref=e1845]:
+                  - generic [ref=e1846]:
+                    - generic [ref=e1847]: 
+                    - link "Please log in to place a bid" [ref=e1849]:
+                      - /url: /auth/login
+                - paragraph [ref=e1850]: Ends Sun at 7:58 PM
+          - generic [ref=e1851] [cursor=pointer]:
+            - img "Product Image" [ref=e1853]
+            - paragraph [ref=e1854]: Appears New
+            - generic [ref=e1855]:
+              - generic [ref=e1856]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1858]:
+                - generic [ref=e1860]:
+                  - paragraph [ref=e1861]: No bids
+                  - paragraph [ref=e1863]: $19.99
+                - alert [ref=e1868]:
+                  - generic [ref=e1869]:
+                    - generic [ref=e1870]: 
+                    - link "Please log in to place a bid" [ref=e1872]:
+                      - /url: /auth/login
+                - paragraph [ref=e1873]: Ends Sun at 7:10 PM
+          - generic [ref=e1874] [cursor=pointer]:
+            - img "Product Image" [ref=e1876]
+            - paragraph [ref=e1877]: Appears New
+            - generic [ref=e1878]:
+              - generic [ref=e1879]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1881]:
+                - generic [ref=e1883]:
+                  - paragraph [ref=e1884]: No bids
+                  - paragraph [ref=e1886]: $19.99
+                - alert [ref=e1891]:
+                  - generic [ref=e1892]:
+                    - generic [ref=e1893]: 
+                    - link "Please log in to place a bid" [ref=e1895]:
+                      - /url: /auth/login
+                - paragraph [ref=e1896]: Ends Sun at 7:43 PM
+          - generic [ref=e1897] [cursor=pointer]:
+            - img "Product Image" [ref=e1899]
+            - paragraph [ref=e1900]: Appears New
+            - generic [ref=e1901]:
+              - generic [ref=e1902]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1904]:
+                - generic [ref=e1906]:
+                  - paragraph [ref=e1907]: No bids
+                  - paragraph [ref=e1909]: $19.99
+                - alert [ref=e1914]:
+                  - generic [ref=e1915]:
+                    - generic [ref=e1916]: 
+                    - link "Please log in to place a bid" [ref=e1918]:
+                      - /url: /auth/login
+                - paragraph [ref=e1919]: Ends Sun at 7:28 PM
+          - generic [ref=e1920] [cursor=pointer]:
+            - img "Product Image" [ref=e1922]
+            - paragraph [ref=e1923]: Appears New
+            - generic [ref=e1924]:
+              - generic [ref=e1925]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1927]:
+                - generic [ref=e1929]:
+                  - paragraph [ref=e1930]: No bids
+                  - paragraph [ref=e1932]: $19.99
+                - alert [ref=e1937]:
+                  - generic [ref=e1938]:
+                    - generic [ref=e1939]: 
+                    - link "Please log in to place a bid" [ref=e1941]:
+                      - /url: /auth/login
+                - paragraph [ref=e1942]: Ends Sun at 6:54 PM
+          - generic [ref=e1943] [cursor=pointer]:
+            - img "Product Image" [ref=e1945]
+            - paragraph [ref=e1946]: Appears New
+            - generic [ref=e1947]:
+              - generic [ref=e1948]: Zxleeyh Fast-Acting Skin Tag Remover for Body and Neck - Natural, Mild Salicylic Acid Formula, Use a Brush applicator Skin tag Remover Precisely and painlessly and Quickly.Safe for Sensitive skin30ML
+              - generic [ref=e1950]:
+                - generic [ref=e1952]:
+                  - paragraph [ref=e1953]: No bids
+                  - paragraph [ref=e1955]: $19.99
+                - alert [ref=e1960]:
+                  - generic [ref=e1961]:
+                    - generic [ref=e1962]: 
+                    - link "Please log in to place a bid" [ref=e1964]:
+                      - /url: /auth/login
+                - paragraph [ref=e1965]: Ends Sun at 6:39 PM
+          - generic [ref=e1966] [cursor=pointer]:
+            - img "Product Image" [ref=e1968]
+            - paragraph [ref=e1969]: Appears New
+            - generic [ref=e1970]:
+              - generic [ref=e1971]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e1973]:
+                - generic [ref=e1975]:
+                  - paragraph [ref=e1976]: No bids
+                  - paragraph [ref=e1978]: $99.00
+                - alert [ref=e1983]:
+                  - generic [ref=e1984]:
+                    - generic [ref=e1985]: 
+                    - link "Please log in to place a bid" [ref=e1987]:
+                      - /url: /auth/login
+                - paragraph [ref=e1988]: Ends Sun at 6:11 PM
+          - generic [ref=e1989] [cursor=pointer]:
+            - img "Product Image" [ref=e1991]
+            - paragraph [ref=e1992]: Appears New
+            - generic [ref=e1993]:
+              - generic [ref=e1994]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e1996]:
+                - generic [ref=e1998]:
+                  - paragraph [ref=e1999]: No bids
+                  - paragraph [ref=e2001]: $99.00
+                - alert [ref=e2006]:
+                  - generic [ref=e2007]:
+                    - generic [ref=e2008]: 
+                    - link "Please log in to place a bid" [ref=e2010]:
+                      - /url: /auth/login
+                - paragraph [ref=e2011]: Ends Sun at 7:01 PM
+          - generic [ref=e2012] [cursor=pointer]:
+            - img "Product Image" [ref=e2014]
+            - paragraph [ref=e2015]: Appears New
+            - generic [ref=e2016]:
+              - generic [ref=e2017]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e2019]:
+                - generic [ref=e2021]:
+                  - paragraph [ref=e2022]: No bids
+                  - paragraph [ref=e2024]: $99.00
+                - alert [ref=e2029]:
+                  - generic [ref=e2030]:
+                    - generic [ref=e2031]: 
+                    - link "Please log in to place a bid" [ref=e2033]:
+                      - /url: /auth/login
+                - paragraph [ref=e2034]: Ends Sun at 7:56 PM
+          - generic [ref=e2035] [cursor=pointer]:
+            - img "Product Image" [ref=e2037]
+            - paragraph [ref=e2038]: Appears New
+            - generic [ref=e2039]:
+              - generic [ref=e2040]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e2042]:
+                - generic [ref=e2044]:
+                  - paragraph [ref=e2045]: No bids
+                  - paragraph [ref=e2047]: $99.00
+                - alert [ref=e2052]:
+                  - generic [ref=e2053]:
+                    - generic [ref=e2054]: 
+                    - link "Please log in to place a bid" [ref=e2056]:
+                      - /url: /auth/login
+                - paragraph [ref=e2057]: Ends Sun at 6:46 PM
+          - generic [ref=e2058] [cursor=pointer]:
+            - img "Product Image" [ref=e2060]
+            - paragraph [ref=e2061]: Appears New
+            - generic [ref=e2062]:
+              - generic [ref=e2063]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e2065]:
+                - generic [ref=e2067]:
+                  - paragraph [ref=e2068]: No bids
+                  - paragraph [ref=e2070]: $99.00
+                - alert [ref=e2075]:
+                  - generic [ref=e2076]:
+                    - generic [ref=e2077]: 
+                    - link "Please log in to place a bid" [ref=e2079]:
+                      - /url: /auth/login
+                - paragraph [ref=e2080]: Ends Sun at 7:41 PM
+          - generic [ref=e2081] [cursor=pointer]:
+            - img "Product Image" [ref=e2083]
+            - paragraph [ref=e2084]: Appears New
+            - generic [ref=e2085]:
+              - generic [ref=e2086]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e2088]:
+                - generic [ref=e2090]:
+                  - paragraph [ref=e2091]: No bids
+                  - paragraph [ref=e2093]: $99.00
+                - alert [ref=e2098]:
+                  - generic [ref=e2099]:
+                    - generic [ref=e2100]: 
+                    - link "Please log in to place a bid" [ref=e2102]:
+                      - /url: /auth/login
+                - paragraph [ref=e2103]: Ends Sun at 7:26 PM
+          - generic [ref=e2104] [cursor=pointer]:
+            - img "Product Image" [ref=e2106]
+            - paragraph [ref=e2107]: Appears New
+            - generic [ref=e2108]:
+              - generic [ref=e2109]: Florvyn Rutaecarpine Supplement for Coffee Lovers – De-Caffeinate, Naturally Derived Formula Supports the Body’s Caffeine Metabolism – Non-Habit Forming, Helps Maintain a Calm & Relaxed State
+              - generic [ref=e2111]:
+                - generic [ref=e2113]:
+                  - paragraph [ref=e2114]: No bids
+                  - paragraph [ref=e2116]: $99.00
+                - alert [ref=e2121]:
+                  - generic [ref=e2122]:
+                    - generic [ref=e2123]: 
+                    - link "Please log in to place a bid" [ref=e2125]:
+                      - /url: /auth/login
+                - paragraph [ref=e2126]: Ends Sun at 6:31 PM
+          - generic [ref=e2127] [cursor=pointer]:
+            - img "Product Image" [ref=e2129]
+            - paragraph [ref=e2130]: Appears New
+            - generic [ref=e2131]:
+              - generic [ref=e2132]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2134]:
+                - generic [ref=e2136]:
+                  - paragraph [ref=e2137]: No bids
+                  - paragraph [ref=e2139]: $17.98
+                - alert [ref=e2144]:
+                  - generic [ref=e2145]:
+                    - generic [ref=e2146]: 
+                    - link "Please log in to place a bid" [ref=e2148]:
+                      - /url: /auth/login
+                - paragraph [ref=e2149]: Ends Sun at 6:23 PM
+          - generic [ref=e2150] [cursor=pointer]:
+            - img "Product Image" [ref=e2152]
+            - paragraph [ref=e2153]: Appears New
+            - generic [ref=e2154]:
+              - generic [ref=e2155]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2157]:
+                - generic [ref=e2159]:
+                  - paragraph [ref=e2160]: No bids
+                  - paragraph [ref=e2162]: $17.98
+                - alert [ref=e2167]:
+                  - generic [ref=e2168]:
+                    - generic [ref=e2169]: 
+                    - link "Please log in to place a bid" [ref=e2171]:
+                      - /url: /auth/login
+                - paragraph [ref=e2172]: Ends Sun at 6:08 PM
+          - generic [ref=e2173] [cursor=pointer]:
+            - img "Product Image" [ref=e2175]
+            - paragraph [ref=e2176]: Appears New
+            - generic [ref=e2177]:
+              - generic [ref=e2178]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2180]:
+                - generic [ref=e2182]:
+                  - paragraph [ref=e2183]: No bids
+                  - paragraph [ref=e2185]: $17.98
+                - alert [ref=e2190]:
+                  - generic [ref=e2191]:
+                    - generic [ref=e2192]: 
+                    - link "Please log in to place a bid" [ref=e2194]:
+                      - /url: /auth/login
+                - paragraph [ref=e2195]: Ends Sun at 7:53 PM
+          - generic [ref=e2196] [cursor=pointer]:
+            - img "Product Image" [ref=e2198]
+            - paragraph [ref=e2199]: Appears New
+            - generic [ref=e2200]:
+              - generic [ref=e2201]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2203]:
+                - generic [ref=e2205]:
+                  - paragraph [ref=e2206]: No bids
+                  - paragraph [ref=e2208]: $17.98
+                - alert [ref=e2213]:
+                  - generic [ref=e2214]:
+                    - generic [ref=e2215]: 
+                    - link "Please log in to place a bid" [ref=e2217]:
+                      - /url: /auth/login
+                - paragraph [ref=e2218]: Ends Sun at 7:38 PM
+          - generic [ref=e2219] [cursor=pointer]:
+            - img "Product Image" [ref=e2221]
+            - paragraph [ref=e2222]: Appears New
+            - generic [ref=e2223]:
+              - generic [ref=e2224]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2226]:
+                - generic [ref=e2228]:
+                  - paragraph [ref=e2229]: No bids
+                  - paragraph [ref=e2231]: $17.98
+                - alert [ref=e2236]:
+                  - generic [ref=e2237]:
+                    - generic [ref=e2238]: 
+                    - link "Please log in to place a bid" [ref=e2240]:
+                      - /url: /auth/login
+                - paragraph [ref=e2241]: Ends Sun at 6:42 PM
+          - generic [ref=e2242] [cursor=pointer]:
+            - img "Product Image" [ref=e2244]
+            - paragraph [ref=e2245]: Appears New
+            - generic [ref=e2246]:
+              - generic [ref=e2247]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2249]:
+                - generic [ref=e2251]:
+                  - paragraph [ref=e2252]: No bids
+                  - paragraph [ref=e2254]: $17.98
+                - alert [ref=e2259]:
+                  - generic [ref=e2260]:
+                    - generic [ref=e2261]: 
+                    - link "Please log in to place a bid" [ref=e2263]:
+                      - /url: /auth/login
+                - paragraph [ref=e2264]: Ends Sun at 7:23 PM
+          - generic [ref=e2265] [cursor=pointer]:
+            - img "Product Image" [ref=e2267]
+            - paragraph [ref=e2268]: Appears New
+            - generic [ref=e2269]:
+              - generic [ref=e2270]: Cat Repellent Outdoor & Indoor, Cat Deterrent Outdoor Indoor, Natural Essential Oil Ball, Anti Cats Scratch for Furniture, Keep Cats Out of Yard, Keep Cats Away from Garden, Lawn Plants, 12 Packs
+              - generic [ref=e2272]:
+                - generic [ref=e2274]:
+                  - paragraph [ref=e2275]: No bids
+                  - paragraph [ref=e2277]: $17.98
+                - alert [ref=e2282]:
+                  - generic [ref=e2283]:
+                    - generic [ref=e2284]: 
+                    - link "Please log in to place a bid" [ref=e2286]:
+                      - /url: /auth/login
+                - paragraph [ref=e2287]: Ends Sun at 7:05 PM
+          - generic [ref=e2288] [cursor=pointer]:
+            - img "Product Image" [ref=e2290]
+            - paragraph [ref=e2291]: Appears New
+            - generic [ref=e2292]:
+              - generic [ref=e2293]: Under Desk Elliptical Machine, Electric Seated Pedal Exerciser, Mini Elliptical Leg Exerciser with Remoter, 12 Level Speeds, Forward & Reverse Direction, Manual & Auto Mode for Home Office
+              - generic [ref=e2295]:
+                - generic [ref=e2297]:
+                  - paragraph [ref=e2298]: No bids
+                  - paragraph [ref=e2300]: $149.99
+                - alert [ref=e2305]:
+                  - generic [ref=e2306]:
+                    - generic [ref=e2307]: 
+                    - link "Please log in to place a bid" [ref=e2309]:
+                      - /url: /auth/login
+                - paragraph [ref=e2310]: Ends Sun at 6:57 PM
+          - generic [ref=e2311] [cursor=pointer]:
+            - img "Product Image" [ref=e2313]
+            - paragraph [ref=e2314]: Appears New
+            - generic [ref=e2315]:
+              - generic [ref=e2316]: Under Desk Elliptical Machine, Electric Seated Pedal Exerciser, Mini Elliptical Leg Exerciser with Remoter, 12 Level Speeds, Forward & Reverse Direction, Manual & Auto Mode for Home Office
+              - generic [ref=e2318]:
+                - generic [ref=e2320]:
+                  - paragraph [ref=e2321]: No bids
+                  - paragraph [ref=e2323]: $149.99
+                - alert [ref=e2328]:
+                  - generic [ref=e2329]:
+                    - generic [ref=e2330]: 
+                    - link "Please log in to place a bid" [ref=e2332]:
+                      - /url: /auth/login
+                - paragraph [ref=e2333]: Ends Sun at 6:42 PM
+          - generic [ref=e2334] [cursor=pointer]:
+            - img "Product Image" [ref=e2336]
+            - paragraph [ref=e2337]: Appears New
+            - generic [ref=e2338]:
+              - generic [ref=e2339]: Under Desk Elliptical Machine, Electric Seated Pedal Exerciser, Mini Elliptical Leg Exerciser with Remoter, 12 Level Speeds, Forward & Reverse Direction, Manual & Auto Mode for Home Office
+              - generic [ref=e2341]:
+                - generic [ref=e2343]:
+                  - paragraph [ref=e2344]: No bids
+                  - paragraph [ref=e2346]: $149.99
+                - alert [ref=e2351]:
+                  - generic [ref=e2352]:
+                    - generic [ref=e2353]: 
+                    - link "Please log in to place a bid" [ref=e2355]:
+                      - /url: /auth/login
+                - paragraph [ref=e2356]: Ends Sun at 6:27 PM
+          - generic [ref=e2357] [cursor=pointer]:
+            - img "Product Image" [ref=e2359]
+            - paragraph [ref=e2360]: Appears New
+            - generic [ref=e2361]:
+              - generic [ref=e2362]: 2 Pack 20 oz Tumbler Lid Replacement Lis Spill Proof Splash Resistant Slider Mug Toppe for Yeti Ramble and More Coffee Mugs
+              - generic [ref=e2364]:
+                - generic [ref=e2366]:
+                  - paragraph [ref=e2367]: No bids
+                  - paragraph [ref=e2369]: $15.98
+                  - generic [ref=e2371]:
+                    - generic [ref=e2372]: 
+                    - text: Multipack
+                - alert [ref=e2376]:
+                  - generic [ref=e2377]:
+                    - generic [ref=e2378]: 
+                    - link "Please log in to place a bid" [ref=e2380]:
+                      - /url: /auth/login
+                - paragraph [ref=e2381]: Ends Sun at 7:26 PM
+          - generic [ref=e2382] [cursor=pointer]:
+            - img "Product Image" [ref=e2384]
+            - paragraph [ref=e2385]: Appears New
+            - generic [ref=e2386]:
+              - generic [ref=e2387]: 2 Pack 20 oz Tumbler Lid Replacement Lis Spill Proof Splash Resistant Slider Mug Toppe for Yeti Ramble and More Coffee Mugs
+              - generic [ref=e2389]:
+                - generic [ref=e2391]:
+                  - paragraph [ref=e2392]: No bids
+                  - paragraph [ref=e2394]: $15.98
+                  - generic [ref=e2396]:
+                    - generic [ref=e2397]: 
+                    - text: Multipack
+                - alert [ref=e2401]:
+                  - generic [ref=e2402]:
+                    - generic [ref=e2403]: 
+                    - link "Please log in to place a bid" [ref=e2405]:
+                      - /url: /auth/login
+                - paragraph [ref=e2406]: Ends Sun at 6:36 PM
+          - generic [ref=e2407] [cursor=pointer]:
+            - img "Product Image" [ref=e2409]
+            - paragraph [ref=e2410]: Appears New
+            - generic [ref=e2411]:
+              - generic [ref=e2412]: 2 Pack 20 oz Tumbler Lid Replacement Lis Spill Proof Splash Resistant Slider Mug Toppe for Yeti Ramble and More Coffee Mugs
+              - generic [ref=e2414]:
+                - generic [ref=e2416]:
+                  - paragraph [ref=e2417]: No bids
+                  - paragraph [ref=e2419]: $15.98
+                  - generic [ref=e2421]:
+                    - generic [ref=e2422]: 
+                    - text: Multipack
+                - alert [ref=e2426]:
+                  - generic [ref=e2427]:
+                    - generic [ref=e2428]: 
+                    - link "Please log in to place a bid" [ref=e2430]:
+                      - /url: /auth/login
+                - paragraph [ref=e2431]: Ends Sun at 7:05 PM
+          - generic [ref=e2432] [cursor=pointer]:
+            - img "Product Image" [ref=e2434]
+            - paragraph [ref=e2435]: Appears New
+            - generic [ref=e2436]:
+              - generic [ref=e2437]: Mixcous Modular Oversized Chair Ottoman with Removable Pillow Top, 39”W Big Ottoman, Convertible Square Foot Rest Stool, Upholstered Extra Seating for Living Room & Bedroom, Sand Beige
+              - generic [ref=e2439]:
+                - generic [ref=e2441]:
+                  - paragraph [ref=e2442]: No bids
+                  - paragraph [ref=e2444]: $119.99
+                - alert [ref=e2449]:
+                  - generic [ref=e2450]:
+                    - generic [ref=e2451]: 
+                    - link "Please log in to place a bid" [ref=e2453]:
+                      - /url: /auth/login
+                - paragraph [ref=e2454]: Ends Sun at 7:54 PM
+          - generic [ref=e2455] [cursor=pointer]:
+            - img "Product Image" [ref=e2457]
+            - paragraph [ref=e2458]: Appears New
+            - generic [ref=e2459]:
+              - generic [ref=e2460]: SHOP TINKER Epoxy Resin Color Pigment
+              - generic [ref=e2462]:
+                - generic [ref=e2464]:
+                  - paragraph [ref=e2465]: No bids
+                  - paragraph [ref=e2467]: $18.14
+                - alert [ref=e2472]:
+                  - generic [ref=e2473]:
+                    - generic [ref=e2474]: 
+                    - link "Please log in to place a bid" [ref=e2476]:
+                      - /url: /auth/login
+                - paragraph [ref=e2477]: Ends Sun at 6:45 PM
+          - generic [ref=e2478] [cursor=pointer]:
+            - img "Product Image" [ref=e2480]
+            - paragraph [ref=e2481]: Appears New
+            - generic [ref=e2482]:
+              - generic [ref=e2483]: SHOP TINKER Epoxy Resin Color Pigment
+              - generic [ref=e2485]:
+                - generic [ref=e2487]:
+                  - paragraph [ref=e2488]: No bids
+                  - paragraph [ref=e2490]: $18.14
+                - alert [ref=e2495]:
+                  - generic [ref=e2496]:
+                    - generic [ref=e2497]: 
+                    - link "Please log in to place a bid" [ref=e2499]:
+                      - /url: /auth/login
+                - paragraph [ref=e2500]: Ends Sun at 7:43 PM
+          - generic [ref=e2501] [cursor=pointer]:
+            - img "Product Image" [ref=e2503]
+            - paragraph [ref=e2504]: Appears New
+            - generic [ref=e2505]:
+              - generic [ref=e2506]: SHOP TINKER Epoxy Resin Color Pigment
+              - generic [ref=e2508]:
+                - generic [ref=e2510]:
+                  - paragraph [ref=e2511]: No bids
+                  - paragraph [ref=e2513]: $18.14
+                - alert [ref=e2518]:
+                  - generic [ref=e2519]:
+                    - generic [ref=e2520]: 
+                    - link "Please log in to place a bid" [ref=e2522]:
+                      - /url: /auth/login
+                - paragraph [ref=e2523]: Ends Sun at 7:28 PM
+          - generic [ref=e2524] [cursor=pointer]:
+            - img "Product Image" [ref=e2526]
+            - paragraph [ref=e2527]: Appears New
+            - generic [ref=e2528]:
+              - generic [ref=e2529]: SHOP TINKER Epoxy Resin Color Pigment
+              - generic [ref=e2531]:
+                - generic [ref=e2533]:
+                  - paragraph [ref=e2534]: No bids
+                  - paragraph [ref=e2536]: $18.14
+                - alert [ref=e2541]:
+                  - generic [ref=e2542]:
+                    - generic [ref=e2543]: 
+                    - link "Please log in to place a bid" [ref=e2545]:
+                      - /url: /auth/login
+                - paragraph [ref=e2546]: Ends Sun at 7:13 PM
+          - generic [ref=e2547] [cursor=pointer]:
+            - img "Product Image" [ref=e2549]
+            - paragraph [ref=e2550]: Appears New
+            - generic [ref=e2551]:
+              - generic [ref=e2552]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2554]:
+                - generic [ref=e2556]:
+                  - paragraph [ref=e2557]: No bids
+                  - paragraph [ref=e2559]: $27.98
+                - alert [ref=e2564]:
+                  - generic [ref=e2565]:
+                    - generic [ref=e2566]: 
+                    - link "Please log in to place a bid" [ref=e2568]:
+                      - /url: /auth/login
+                - paragraph [ref=e2569]: Ends Sun at 6:28 PM
+          - generic [ref=e2570] [cursor=pointer]:
+            - img "Product Image" [ref=e2572]
+            - paragraph [ref=e2573]: Appears New
+            - generic [ref=e2574]:
+              - generic [ref=e2575]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2577]:
+                - generic [ref=e2579]:
+                  - paragraph [ref=e2580]: No bids
+                  - paragraph [ref=e2582]: $27.98
+                - alert [ref=e2587]:
+                  - generic [ref=e2588]:
+                    - generic [ref=e2589]: 
+                    - link "Please log in to place a bid" [ref=e2591]:
+                      - /url: /auth/login
+                - paragraph [ref=e2592]: Ends Sun at 6:13 PM
+          - generic [ref=e2593] [cursor=pointer]:
+            - img "Product Image" [ref=e2595]
+            - paragraph [ref=e2596]: Appears New
+            - generic [ref=e2597]:
+              - generic [ref=e2598]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2600]:
+                - generic [ref=e2602]:
+                  - paragraph [ref=e2603]: No bids
+                  - paragraph [ref=e2605]: $27.98
+                - alert [ref=e2610]:
+                  - generic [ref=e2611]:
+                    - generic [ref=e2612]: 
+                    - link "Please log in to place a bid" [ref=e2614]:
+                      - /url: /auth/login
+                - paragraph [ref=e2615]: Ends Sun at 7:58 PM
+          - generic [ref=e2616] [cursor=pointer]:
+            - img "Product Image" [ref=e2618]
+            - paragraph [ref=e2619]: Appears New
+            - generic [ref=e2620]:
+              - generic [ref=e2621]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2623]:
+                - generic [ref=e2625]:
+                  - paragraph [ref=e2626]: No bids
+                  - paragraph [ref=e2628]: $27.98
+                - alert [ref=e2633]:
+                  - generic [ref=e2634]:
+                    - generic [ref=e2635]: 
+                    - link "Please log in to place a bid" [ref=e2637]:
+                      - /url: /auth/login
+                - paragraph [ref=e2638]: Ends Sun at 7:01 PM
+          - generic [ref=e2639] [cursor=pointer]:
+            - img "Product Image" [ref=e2641]
+            - paragraph [ref=e2642]: Appears New
+            - generic [ref=e2643]:
+              - generic [ref=e2644]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2646]:
+                - generic [ref=e2648]:
+                  - paragraph [ref=e2649]: No bids
+                  - paragraph [ref=e2651]: $27.98
+                - alert [ref=e2656]:
+                  - generic [ref=e2657]:
+                    - generic [ref=e2658]: 
+                    - link "Please log in to place a bid" [ref=e2660]:
+                      - /url: /auth/login
+                - paragraph [ref=e2661]: Ends Sun at 6:46 PM
+          - generic [ref=e2662] [cursor=pointer]:
+            - img "Product Image" [ref=e2664]
+            - paragraph [ref=e2665]: Appears New
+            - generic [ref=e2666]:
+              - generic [ref=e2667]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2669]:
+                - generic [ref=e2671]:
+                  - paragraph [ref=e2672]: No bids
+                  - paragraph [ref=e2674]: $27.98
+                - alert [ref=e2679]:
+                  - generic [ref=e2680]:
+                    - generic [ref=e2681]: 
+                    - link "Please log in to place a bid" [ref=e2683]:
+                      - /url: /auth/login
+                - paragraph [ref=e2684]: Ends Sun at 7:43 PM
+          - generic [ref=e2685] [cursor=pointer]:
+            - img "Product Image" [ref=e2687]
+            - paragraph [ref=e2688]: Appears New
+            - generic [ref=e2689]:
+              - generic [ref=e2690]: Upgraded Self-Repair Pool Net, Pool & Pond Cleaning Skimmer with Heavy Duty Nylon Net - Fine Mesh, Aluminum Frame, Deep Trash Bag for Above Ground & In-ground Pools, Leaf Skimmer Rake Net(No Pole)
+              - generic [ref=e2692]:
+                - generic [ref=e2694]:
+                  - paragraph [ref=e2695]: No bids
+                  - paragraph [ref=e2697]: $27.98
+                - alert [ref=e2702]:
+                  - generic [ref=e2703]:
+                    - generic [ref=e2704]: 
+                    - link "Please log in to place a bid" [ref=e2706]:
+                      - /url: /auth/login
+                - paragraph [ref=e2707]: Ends Sun at 7:28 PM
+          - generic [ref=e2708] [cursor=pointer]:
+            - img "Product Image" [ref=e2710]
+            - paragraph [ref=e2711]: Appears New
+            - generic [ref=e2712]:
+              - generic [ref=e2713]: Mixcous Modular Oversized Chair Ottoman with Removable Pillow Top, 39”W Big Ottoman, Convertible Square Foot Rest Stool, Upholstered Extra Seating for Living Room & Bedroom, Sand Beige
+              - generic [ref=e2715]:
+                - generic [ref=e2717]:
+                  - paragraph [ref=e2718]: No bids
+                  - paragraph [ref=e2720]: $119.99
+                - alert [ref=e2725]:
+                  - generic [ref=e2726]:
+                    - generic [ref=e2727]: 
+                    - link "Please log in to place a bid" [ref=e2729]:
+                      - /url: /auth/login
+                - paragraph [ref=e2730]: Ends Sun at 7:39 PM
+  - contentinfo [ref=e248]:
+    - generic [ref=e249]:
+      - generic [ref=e250]:
+        - link [ref=e251] [cursor=pointer]:
+          - /url: /
+          - img [ref=e252]
+        - generic [ref=e262]:
+          - link [ref=e263] [cursor=pointer]:
+            - /url: https://facebook.com/buywander
+          - link [ref=e265] [cursor=pointer]:
+            - /url: https://www.instagram.com/buywander
+          - link [ref=e267] [cursor=pointer]:
+            - /url: https://www.youtube.com/@buywander
+          - link [ref=e269] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/buywander
+          - link [ref=e271] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@buywander0
+      - generic [ref=e273]:
+        - generic [ref=e274]:
+          - generic [ref=e275]:
+            - heading "BUY" [level=3] [ref=e276]
+            - link "Shop" [ref=e277] [cursor=pointer]:
+              - /url: /auctions
+            - link "My account" [ref=e278] [cursor=pointer]:
+              - /url: /dashboard/profile
+          - generic [ref=e279]:
+            - heading "COMPANY" [level=3] [ref=e280]
+            - link "About us" [ref=e281] [cursor=pointer]:
+              - /url: /about-us
+            - link "Contact us" [ref=e282] [cursor=pointer]:
+              - /url: /contact
+            - link "Locations and hours" [ref=e283] [cursor=pointer]:
+              - /url: /locations-hours
+            - generic [ref=e284] [cursor=pointer]: How it works
+        - generic [ref=e285]:
+          - paragraph [ref=e286]: "We accept:"
+          - generic [ref=e287]:
+            - img [ref=e288]
+            - img [ref=e292]
+            - img [ref=e296]
+            - img [ref=e302]
+            - img [ref=e308]
+            - img [ref=e316]
+            - img [ref=e319]
+            - img [ref=e323]
+    - generic [ref=e327]:
+      - paragraph [ref=e328]: ©2026 Buywander. All rights reserved.
+      - generic [ref=e329]:
+        - link "Privacy policy" [ref=e330] [cursor=pointer]:
+          - /url: /legal/privacy-policy
+        - link "Terms of Service" [ref=e331] [cursor=pointer]:
+          - /url: /legal/terms-of-service
+        - link "Sweepstakes Rules" [ref=e332] [cursor=pointer]:
+          - /url: /legal/sweepstakes-rules
+        - link "Return Policy" [ref=e333] [cursor=pointer]:
+          - /url: /legal/return-policy

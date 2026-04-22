@@ -1,7 +1,8 @@
 """
-backend/app/db/database.py — SQLAlchemy engine, session factory, and init.
+backend/app/db/database.py - SQLAlchemy engine, session factory, and init.
 """
 
+import logging as _logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, event, inspect, text
@@ -9,11 +10,9 @@ from sqlalchemy.orm import sessionmaker
 
 from ..config import DATABASE_URL
 
-import logging as _logging
-
 _logger = _logging.getLogger(__name__)
 
-# SQLite needs check_same_thread=False for FastAPI multi-thread access
+# SQLite needs check_same_thread=False for FastAPI multi-thread access.
 connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 
 engine = create_engine(
@@ -23,21 +22,18 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
-# Enable WAL mode and foreign keys for SQLite
+
 if "sqlite" in DATABASE_URL:
 
     @event.listens_for(engine, "connect")
     def _set_sqlite_pragma(dbapi_conn, connection_record):
+        del connection_record
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
-        # Safe with WAL, much faster writes.
         cursor.execute("PRAGMA synchronous=NORMAL")
-        # 8MB page cache (default is about 2MB).
         cursor.execute("PRAGMA cache_size=-8000")
-        cursor.execute(
-            "PRAGMA busy_timeout=5000"
-        )  # Wait up to 5s on locks instead of failing immediately
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
 
 
@@ -49,7 +45,7 @@ SessionLocal = sessionmaker(
 
 
 def get_db():
-    """FastAPI dependency — yields a DB session and auto-closes."""
+    """FastAPI dependency that yields a DB session and closes it automatically."""
     db = SessionLocal()
     try:
         yield db
@@ -58,9 +54,9 @@ def get_db():
 
 
 def _short_database_url():
-    if len(DATABASE_URL) > 50:
-        return DATABASE_URL[:50] + "..."
-    return DATABASE_URL
+    if len(DATABASE_URL) <= 50:
+        return DATABASE_URL
+    return DATABASE_URL[:50] + "..."
 
 
 def _get_alembic_revision_state(
@@ -69,9 +65,7 @@ def _get_alembic_revision_state(
     alembic_config_cls=None,
     script_directory_cls=None,
 ):
-    """
-    Return whether the connected database matches the current Alembic head.
-    """
+    """Return whether the connected database matches the current Alembic head."""
     if alembic_config_cls is None or script_directory_cls is None:
         from alembic.config import Config as _AlembicConfig
         from alembic.script import ScriptDirectory as _ScriptDirectory
@@ -155,16 +149,15 @@ def _log_non_sqlite_migration_status():
 
 
 def init_db():
-    """Create all tables (safe to call multiple times)."""
+    """Create all tables and run lightweight legacy SQLite compatibility fixes."""
     from .models import Base
 
     Base.metadata.create_all(bind=engine)
-    # Add columns to existing SQLite databases that predate them.
-    # Each ALTER TABLE is wrapped individually so one failure doesn't block the rest.
+
     if "sqlite" in DATABASE_URL:
         migrations = [
-            "ALTER TABLE users  ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0",
-            "ALTER TABLE snipes ADD COLUMN notify  BOOLEAN",
+            "ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE snipes ADD COLUMN notify BOOLEAN",
         ]
         with engine.connect() as conn:
             for sql in migrations:
@@ -172,6 +165,7 @@ def init_db():
                     conn.execute(text(sql))
                     conn.commit()
                 except Exception:
-                    pass  # Column already exists
-    else:
-        _log_non_sqlite_migration_status()
+                    pass
+        return
+
+    _log_non_sqlite_migration_status()

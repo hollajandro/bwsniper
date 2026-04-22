@@ -8,7 +8,16 @@ import uuid as _uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -48,7 +57,11 @@ def _new_uuid() -> str:
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True
     )
@@ -66,7 +79,10 @@ class User(Base):
         "BuyWanderLogin", back_populates="user", cascade="all, delete-orphan"
     )
     config: Mapped["UserConfig | None"] = relationship(
-        "UserConfig", back_populates="user", uselist=False, cascade="all, delete-orphan"
+        "UserConfig",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
@@ -76,7 +92,11 @@ class User(Base):
 class BuyWanderLogin(Base):
     __tablename__ = "buywander_logins"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False
     )
@@ -110,7 +130,11 @@ class BuyWanderLogin(Base):
 class Snipe(Base):
     __tablename__ = "snipes"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     login_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("buywander_logins.id"), nullable=False
     )
@@ -161,7 +185,11 @@ class Snipe(Base):
 class HistoryRecord(Base):
     __tablename__ = "history"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     login_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("buywander_logins.id"), nullable=False
     )
@@ -172,7 +200,10 @@ class HistoryRecord(Base):
     final_price: Mapped[float] = mapped_column(Float, nullable=False)
     my_bid: Mapped[float] = mapped_column(Float, nullable=False)
     store_location_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    won_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    won_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+    )
 
     login: Mapped["BuyWanderLogin"] = relationship(
         "BuyWanderLogin", back_populates="history_records"
@@ -184,7 +215,11 @@ class HistoryRecord(Base):
 class UserConfig(Base):
     __tablename__ = "user_config"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), unique=True, nullable=False
     )
@@ -199,7 +234,11 @@ class UserConfig(Base):
 class EventLog(Base):
     __tablename__ = "event_log"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     login_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("buywander_logins.id"), nullable=False
     )
@@ -226,7 +265,11 @@ class EventLog(Base):
 class WatchlistItem(Base):
     __tablename__ = "watchlist"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False
     )
@@ -249,7 +292,11 @@ class RefreshToken(Base):
 
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False
     )
@@ -257,7 +304,10 @@ class RefreshToken(Base):
         String(64), unique=True, nullable=False, index=True
     )
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
@@ -272,7 +322,11 @@ class NotificationQueue(Base):
 
     __tablename__ = "notification_queue"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False
     )

@@ -31,15 +31,21 @@ if "sqlite" in DATABASE_URL:
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA synchronous=NORMAL")  # Safe with WAL, much faster writes
-        cursor.execute("PRAGMA cache_size=-8000")  # 8MB page cache (default is ~2MB)
+        # Safe with WAL, much faster writes.
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        # 8MB page cache (default is about 2MB).
+        cursor.execute("PRAGMA cache_size=-8000")
         cursor.execute(
             "PRAGMA busy_timeout=5000"
         )  # Wait up to 5s on locks instead of failing immediately
         cursor.close()
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
 
 def get_db():

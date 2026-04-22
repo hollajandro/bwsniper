@@ -5,6 +5,7 @@ Bridges API routes → DB operations → worker pool management.
 """
 
 import logging
+import time
 from sqlalchemy.orm import Session as DBSession
 
 from ..db.models import Snipe, BuyWanderLogin, SnipeStatus
@@ -199,6 +200,4 @@ def restart_active_snipes(db: DBSession, ws_manager=None):
             )
             pool.spawn(snipe.id, worker)
         if batch_start + BATCH_SIZE < len(snipes):
-            import asyncio
-
-            asyncio.sleep(0.25)  # brief pause between batches
+            time.sleep(0.25)  # brief pause between batches

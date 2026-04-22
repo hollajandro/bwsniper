@@ -2,6 +2,7 @@
 backend/app/api/history.py — Won-auction history endpoints.
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -93,7 +94,7 @@ def refresh_history(
             final_price=rec.get("final_price", 0.0),
             my_bid=rec.get("my_bid", 0.0),
             store_location_id=rec.get("store_location_id", ""),
-            won_at=won_at,
+            won_at=won_at or datetime.now(timezone.utc),
         )
         db.add(hr)
         added += 1

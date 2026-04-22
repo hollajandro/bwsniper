@@ -28,3 +28,4 @@ opentelemetry-instrumentation-sqlalchemy~=0.56b0
 python-dotenv~=1.1.0
 textual~=3.2.0
 rich~=14.0.0
+types-requests~=2.32.4

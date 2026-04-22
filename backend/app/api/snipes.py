@@ -74,7 +74,7 @@ def add_snipe(
     # Use a mutable container so the notification closure can reference the snipe
     # ID after create_snipe assigns it (the worker only calls the fn after the
     # auction ends, so the ID will always be populated by then).
-    snipe_id_ref = [None]
+    snipe_id_ref: list[str | None] = [None]
     notification_fn = _make_notification_fn(user.id, snipe_id_ref)
     try:
         snipe = create_snipe(

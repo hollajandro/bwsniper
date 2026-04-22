@@ -52,7 +52,9 @@ def get_db():
 
 
 def _short_database_url():
-    return DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL
+    if len(DATABASE_URL) > 50:
+        return DATABASE_URL[:50] + "..."
+    return DATABASE_URL
 
 
 def _get_alembic_revision_state(
@@ -61,7 +63,9 @@ def _get_alembic_revision_state(
     alembic_config_cls=None,
     script_directory_cls=None,
 ):
-    """Return whether the connected database matches the current Alembic head."""
+    """
+    Return whether the connected database matches the current Alembic head.
+    """
     if alembic_config_cls is None or script_directory_cls is None:
         from alembic.config import Config as _AlembicConfig
         from alembic.script import ScriptDirectory as _ScriptDirectory
@@ -80,7 +84,9 @@ def _get_alembic_revision_state(
 
             current_versions = {
                 row[0]
-                for row in conn.execute(text("SELECT version_num FROM alembic_version"))
+                for row in conn.execute(
+                    text("SELECT version_num FROM alembic_version")
+                )
             }
     except Exception as ex:
         return "unknown", f"Failed to inspect migration state: {ex}"
@@ -91,7 +97,9 @@ def _get_alembic_revision_state(
     try:
         alembic_config = alembic_config_cls(str(alembic_ini))
         alembic_config.set_main_option("sqlalchemy.url", DATABASE_URL)
-        expected_heads = set(script_directory_cls.from_config(alembic_config).get_heads())
+        expected_heads = set(
+            script_directory_cls.from_config(alembic_config).get_heads()
+        )
     except Exception as ex:
         return "unknown", f"Failed to load Alembic heads: {ex}"
 

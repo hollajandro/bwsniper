@@ -160,7 +160,7 @@ class HistoryResponse(BaseModel):
 _ALLOWED_SORT = frozenset(
     {
         "EndingSoonest",
-        "NewlyListed",
+        "NewArrivals",
         "LowestBid",
         "HighestBid",
         "MostBids",
@@ -168,6 +168,7 @@ _ALLOWED_SORT = frozenset(
         "LowestRetail",
     }
 )
+_SORT_ALIASES = {"NewlyListed": "NewArrivals"}
 
 
 class AuctionSearchParams(BaseModel):
@@ -185,6 +186,7 @@ class AuctionSearchParams(BaseModel):
     @field_validator("sort_by")
     @classmethod
     def validate_sort_by(cls, v: str) -> str:
+        v = _SORT_ALIASES.get(v, v)
         if v not in _ALLOWED_SORT:
             raise ValueError(
                 f"sort_by must be one of: {', '.join(sorted(_ALLOWED_SORT))}"

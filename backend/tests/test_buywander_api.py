@@ -27,7 +27,17 @@ def make_response(status_code, payload=None, body=""):
     )
 
 
-def test_fetch_active_auctions_retries_newly_listed_with_fallback_sort():
+def test_fetch_active_auctions_normalizes_legacy_newly_listed_sort_alias():
+    session = FakeSession([make_response(200, payload={"auctions": [{"id": "auction-1"}]})])
+
+    result = fetch_active_auctions(session, sort_by="NewlyListed", search="ssd")
+
+    assert result == {"auctions": [{"id": "auction-1"}]}
+    assert len(session.calls) == 1
+    assert session.calls[0]["json"]["sortBy"] == "NewArrivals"
+
+
+def test_fetch_active_auctions_retries_new_arrivals_with_fallback_sort():
     session = FakeSession(
         [
             make_response(400, body=""),
@@ -35,11 +45,11 @@ def test_fetch_active_auctions_retries_newly_listed_with_fallback_sort():
         ]
     )
 
-    result = fetch_active_auctions(session, sort_by="NewlyListed", search="ssd")
+    result = fetch_active_auctions(session, sort_by="NewArrivals", search="ssd")
 
     assert result == {"auctions": [{"id": "auction-1"}]}
     assert len(session.calls) == 2
-    assert session.calls[0]["json"]["sortBy"] == "NewlyListed"
+    assert session.calls[0]["json"]["sortBy"] == "NewArrivals"
     assert session.calls[1]["json"]["sortBy"] == "EndingSoonest"
 
 
@@ -52,7 +62,7 @@ def test_fetch_active_auctions_raises_when_fallback_sort_also_fails():
     )
 
     with pytest.raises(requests.HTTPError) as exc:
-        fetch_active_auctions(session, sort_by="NewlyListed", search="ssd")
+        fetch_active_auctions(session, sort_by="NewArrivals", search="ssd")
 
     assert "400 Bad Request" in str(exc.value)
     assert len(session.calls) == 2

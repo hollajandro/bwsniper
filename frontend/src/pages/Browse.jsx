@@ -20,7 +20,7 @@ import { getAllImgs } from '../utils/images'
 
 const LEGACY_SORTS = [
   { value: 'EndingSoonest',       label: 'Ending Soonest' },
-  { value: 'NewlyListed',         label: 'Newly Listed' },
+  { value: 'NewArrivals',         label: 'New Arrivals' },
   { value: 'CurrentPriceLowest',  label: 'Price ↑' },
   { value: 'CurrentPriceHighest', label: 'Price ↓' },
   { value: 'RetailPriceLowest',   label: 'Retail ↑' },
@@ -31,7 +31,7 @@ const LEGACY_SORTS = [
 
 const SORTS = [
   { value: 'EndingSoonest', label: 'Ending Soonest' },
-  { value: 'NewlyListed', label: 'Newly Listed' },
+  { value: 'NewArrivals', label: 'New Arrivals' },
   { value: 'LowestBid', label: 'Price Low' },
   { value: 'HighestBid', label: 'Price High' },
   { value: 'LowestRetail', label: 'Retail Low' },

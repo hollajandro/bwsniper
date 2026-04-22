@@ -85,7 +85,7 @@ def _scan_once():
                     fetch_kwargs = dict(
                         page=1,
                         page_size=24,
-                        sort_by="NewlyListed",
+                        sort_by="NewArrivals",
                         search=kw,
                     )
                     if restricted_locs:

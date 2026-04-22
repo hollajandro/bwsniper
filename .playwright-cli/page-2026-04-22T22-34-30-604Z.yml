@@ -1,0 +1,215 @@
+- generic [ref=e1]:
+  - dialog "Cookie Consent Banner" [ref=e2]:
+    - button "Close this dialog" [active] [ref=e3] [cursor=pointer]:
+      - img "Close this dialog" [ref=e4]
+    - generic [ref=e5]:
+      - generic [ref=e6]: "This website utilizes technologies such as cookies to enable essential site functionality, as well as for analytics, personalization, and targeted advertising. To learn more, view the following link:"
+      - link "Privacy Policy" [ref=e7] [cursor=pointer]:
+        - /url: https://buywander.com/legal/privacy-policy
+    - button "Manage Preferences" [ref=e9] [cursor=pointer]
+  - generic [ref=e11]:
+    - banner [ref=e12]:
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - link [ref=e17] [cursor=pointer]:
+              - /url: /
+              - img [ref=e18]
+            - generic [ref=e29]:
+              - link "Shop" [ref=e30] [cursor=pointer]:
+                - /url: /auctions
+                - text: Shop
+              - generic [ref=e32] [cursor=pointer]: How it works
+              - link "About Us" [ref=e33] [cursor=pointer]:
+                - /url: /about-us
+              - link "FAQs" [ref=e34] [cursor=pointer]:
+                - /url: https://support.buywander.com/
+              - link "Contact Us" [ref=e35] [cursor=pointer]:
+                - /url: /contact
+              - link "WanderBucks" [ref=e36] [cursor=pointer]:
+                - /url: /rewards
+              - link "Locations" [ref=e37] [cursor=pointer]:
+                - /url: /locations-hours
+              - text: 
+              - text:  
+          - generic [ref=e39]:
+            - link [ref=e40] [cursor=pointer]:
+              - /url: /dashboard/profile
+            - link [ref=e42] [cursor=pointer]:
+              - /url: /dashboard/cart
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - paragraph [ref=e49]: How it works
+          - generic [ref=e52]:
+            - paragraph [ref=e53]: "1"
+            - paragraph [ref=e54]: Sign Up
+          - generic [ref=e57]:
+            - paragraph [ref=e58]: "2"
+            - paragraph [ref=e59]: Bid & Win
+          - generic [ref=e62]:
+            - paragraph [ref=e63]: "3"
+            - paragraph [ref=e64]: Schedule Pick-Up
+          - generic [ref=e67]:
+            - paragraph [ref=e68]: "4"
+            - paragraph [ref=e69]: 7-Day Hassle-Free Returns
+        - generic [ref=e70]:
+          - button "Read more" [ref=e71] [cursor=pointer]
+          - button [ref=e72] [cursor=pointer]
+      - generic [ref=e77]:
+        - generic [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: Winning
+          - generic [ref=e80]: "0"
+        - generic [ref=e81] [cursor=pointer]:
+          - generic [ref=e82]: Losing
+          - generic [ref=e83]: "0"
+        - generic [ref=e84] [cursor=pointer]:
+          - generic [ref=e85]: Watching
+          - generic [ref=e86]: "0"
+    - text: 
+    - main [ref=e87]:
+      - generic [ref=e89]:
+        - complementary [ref=e90]:
+          - generic [ref=e91]:
+            - button "No filters applied" [disabled] [ref=e93]: No filters applied
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - heading "Condition" [level=3] [ref=e97]
+                - generic [ref=e98]:
+                  - button "Appears New" [ref=e100] [cursor=pointer]:
+                    - generic [ref=e102]: Appears New
+                  - button "Gently Used" [ref=e104] [cursor=pointer]:
+                    - generic [ref=e106]: Gently Used
+                  - button "Used" [ref=e108] [cursor=pointer]:
+                    - generic [ref=e110]: Used
+                  - button "Heavy Use" [ref=e112] [cursor=pointer]:
+                    - generic [ref=e114]: Heavy Use
+                  - button "Easy Fix" [ref=e116] [cursor=pointer]:
+                    - generic [ref=e118]: Easy Fix
+                  - button "Major Fix" [ref=e120] [cursor=pointer]:
+                    - generic [ref=e122]: Major Fix
+                  - button "Mixed Condition" [ref=e124] [cursor=pointer]:
+                    - generic [ref=e126]: Mixed Condition
+              - separator [ref=e127]
+              - generic [ref=e128]:
+                - heading "Quick Actions" [level=3] [ref=e129]
+                - generic [ref=e130]:
+                  - button "💰 3$ Or Less" [ref=e131] [cursor=pointer]:
+                    - generic [ref=e133]: 💰
+                    - generic [ref=e134]: 3$ Or Less
+                  - button "⏰ Ends Today" [ref=e135] [cursor=pointer]:
+                    - generic [ref=e137]: ⏰
+                    - generic [ref=e138]: Ends Today
+                  - button "📅 Ends Tomorrow" [ref=e139] [cursor=pointer]:
+                    - generic [ref=e141]: 📅
+                    - generic [ref=e142]: Ends Tomorrow
+                  - button "🔥 Hottest" [ref=e143] [cursor=pointer]:
+                    - generic [ref=e145]: 🔥
+                    - generic [ref=e146]: Hottest
+                  - button "💵 No Bids Yet" [ref=e147] [cursor=pointer]:
+                    - generic [ref=e149]: 💵
+                    - generic [ref=e150]: No Bids Yet
+                  - button "🎯 Over 90% Off" [ref=e151] [cursor=pointer]:
+                    - generic [ref=e153]: 🎯
+                    - generic [ref=e154]: Over 90% Off
+              - separator [ref=e155]
+              - heading "Categories" [level=3] [ref=e157]
+              - separator [ref=e158]
+              - generic [ref=e159]:
+                - heading "Additional Categories" [level=3] [ref=e160]
+                - generic [ref=e161]:
+                  - generic [ref=e163] [cursor=pointer]:
+                    - checkbox "Multi Pack" [ref=e165]
+                    - generic [ref=e167]: Multi Pack
+                  - generic [ref=e169] [cursor=pointer]:
+                    - checkbox "Mystery Box" [ref=e171]
+                    - generic [ref=e173]: Mystery Box
+                  - generic [ref=e175] [cursor=pointer]:
+                    - checkbox "Pallet" [ref=e177]
+                    - generic [ref=e179]: Pallet
+                  - generic [ref=e181] [cursor=pointer]:
+                    - checkbox "Variety Pack" [ref=e183]
+                    - generic [ref=e185]: Variety Pack
+              - separator [ref=e186]
+              - generic [ref=e187]:
+                - heading "Retail Price Range" [level=3] [ref=e188]
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: Min Price
+                    - spinbutton "Min" [ref=e193]
+                  - generic [ref=e194]:
+                    - generic [ref=e195]: Max Price
+                    - spinbutton "Max" [ref=e197]
+        - generic [ref=e198]:
+          - generic [ref=e200]:
+            - textbox "Search auctions..." [ref=e202]
+            - generic [ref=e204]:
+              - generic [ref=e205]:
+                - heading "Items for pickup at" [level=3] [ref=e206]
+                - generic [ref=e207]:
+                  - generic [ref=e208]: 
+                  - text: All locations
+              - generic [ref=e209] [cursor=pointer]: 
+            - generic [ref=e210]:
+              - generic [ref=e211]:
+                - button [ref=e212] [cursor=pointer]
+                - button [ref=e215] [cursor=pointer]
+              - button "Ending Soonest" [ref=e218] [cursor=pointer]:
+                - generic [ref=e219]: 
+                - generic [ref=e220]: Ending Soonest
+          - text:  
+    - contentinfo [ref=e248]:
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - link [ref=e251] [cursor=pointer]:
+            - /url: /
+            - img [ref=e252]
+          - generic [ref=e262]:
+            - link [ref=e263] [cursor=pointer]:
+              - /url: https://facebook.com/buywander
+            - link [ref=e265] [cursor=pointer]:
+              - /url: https://www.instagram.com/buywander
+            - link [ref=e267] [cursor=pointer]:
+              - /url: https://www.youtube.com/@buywander
+            - link [ref=e269] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/buywander
+            - link [ref=e271] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@buywander0
+        - generic [ref=e273]:
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - heading "BUY" [level=3] [ref=e276]
+              - link "Shop" [ref=e277] [cursor=pointer]:
+                - /url: /auctions
+              - link "My account" [ref=e278] [cursor=pointer]:
+                - /url: /dashboard/profile
+            - generic [ref=e279]:
+              - heading "COMPANY" [level=3] [ref=e280]
+              - link "About us" [ref=e281] [cursor=pointer]:
+                - /url: /about-us
+              - link "Contact us" [ref=e282] [cursor=pointer]:
+                - /url: /contact
+              - link "Locations and hours" [ref=e283] [cursor=pointer]:
+                - /url: /locations-hours
+              - generic [ref=e284] [cursor=pointer]: How it works
+          - generic [ref=e285]:
+            - paragraph [ref=e286]: "We accept:"
+            - generic [ref=e287]:
+              - img [ref=e288]
+              - img [ref=e292]
+              - img [ref=e296]
+              - img [ref=e302]
+              - img [ref=e308]
+              - img [ref=e316]
+              - img [ref=e319]
+              - img [ref=e323]
+      - generic [ref=e327]:
+        - paragraph [ref=e328]: ©2026 Buywander. All rights reserved.
+        - generic [ref=e329]:
+          - link "Privacy policy" [ref=e330] [cursor=pointer]:
+            - /url: /legal/privacy-policy
+          - link "Terms of Service" [ref=e331] [cursor=pointer]:
+            - /url: /legal/terms-of-service
+          - link "Sweepstakes Rules" [ref=e332] [cursor=pointer]:
+            - /url: /legal/sweepstakes-rules
+          - link "Return Policy" [ref=e333] [cursor=pointer]:
+            - /url: /legal/return-policy

@@ -5,6 +5,7 @@ backend/app/services/auth_service.py — User registration, login, password hash
 from typing import Optional
 
 import bcrypt
+from cryptography.fernet import InvalidToken
 from sqlalchemy.orm import Session
 
 from ..db.models import User, UserConfig
@@ -27,6 +28,10 @@ _DEFAULT_CONFIG = {
         "gotify": {"enabled": False, "url": "", "token": "", "priority": 5},
     },
 }
+
+
+class BuyWanderCredentialDecryptError(ValueError):
+    """Stored BuyWander credentials can no longer be decrypted."""
 
 
 def hash_password(password: str) -> str:
@@ -99,7 +104,13 @@ def reauth_bw_login(login, db: Session):
     from ..utils.crypto import decrypt, encrypt
     from .buywander_api import create_bw_session, bw_login, serialise_cookies
 
-    password = decrypt(login.encrypted_password)
+    try:
+        password = decrypt(login.encrypted_password)
+    except (InvalidToken, AttributeError, TypeError, ValueError) as ex:
+        raise BuyWanderCredentialDecryptError(
+            "Stored BuyWander credentials can no longer be decrypted. "
+            "Update this login's password to continue."
+        ) from ex
     session = create_bw_session()
     bw_login(
         session, login.bw_email, password

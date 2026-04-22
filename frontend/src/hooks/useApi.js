@@ -22,7 +22,7 @@ export function clearTokens() {
 // Serialize concurrent refresh attempts — only one in-flight at a time
 let refreshInProgress = null
 
-async function refreshToken() {
+export async function refreshToken() {
   if (refreshInProgress) return refreshInProgress
   const refresh = localStorage.getItem('bw_refresh_token')
   if (!refresh) return null

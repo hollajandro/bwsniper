@@ -9,7 +9,7 @@
  *   5. Auto-reconnect every 3 s on close.
  */
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { getToken } from './useApi'
+import { getToken, refreshToken } from './useApi'
 
 const RECONNECT_DELAY = 3000
 const PING_INTERVAL   = 30_000
@@ -20,6 +20,7 @@ export function useWebSocket(onMessage) {
   const reconnectTimer  = useRef(null)
   const mountedRef      = useRef(true)
   const onMessageRef    = useRef(onMessage)
+  const authRefreshRef  = useRef(false)
   const [connected, setConnected] = useState(false)
 
   // Keep the ref current without triggering reconnects
@@ -63,11 +64,24 @@ export function useWebSocket(onMessage) {
       } catch { /* ignore non-JSON */ }
     }
 
-    ws.onclose = () => {
+    ws.onclose = async (event) => {
       clearTimers()
       setConnected(false)
       wsRef.current = null
-      if (mountedRef.current) {
+
+      // If the server rejected the socket during auth, try a token refresh once
+      // before falling back to the normal reconnect loop.
+      if (mountedRef.current && event.code === 4001 && !authRefreshRef.current) {
+        authRefreshRef.current = true
+        const newToken = await refreshToken()
+        authRefreshRef.current = false
+        if (newToken) {
+          reconnectTimer.current = setTimeout(connect, 0)
+          return
+        }
+      }
+
+      if (mountedRef.current && getToken()) {
         reconnectTimer.current = setTimeout(connect, RECONNECT_DELAY)
       }
     }

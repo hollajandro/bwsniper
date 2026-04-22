@@ -18,7 +18,10 @@ from ..db.schemas import (
     CartRemoveItem,
 )
 from ..dependencies import get_current_user
-from ..services.auth_service import reauth_bw_login
+from ..services.auth_service import (
+    BuyWanderCredentialDecryptError,
+    reauth_bw_login,
+)
 from ..services.buywander_api import (
     create_bw_session,
     validate_session,
@@ -59,6 +62,13 @@ def _resolve(db: Session, user: User, login_id: str):
         try:
             bw = reauth_bw_login(login, db)
             log.warning("Re-authentication succeeded for %s", login.bw_email)
+        except BuyWanderCredentialDecryptError as ex:
+            log.warning(
+                "Stored BuyWander credentials invalid for %s: %s",
+                login.bw_email,
+                ex,
+            )
+            raise HTTPException(status_code=409, detail=str(ex))
         except Exception as ex:
             log.error(
                 "Re-authentication failed for %s: %s", login.bw_email, ex, exc_info=True

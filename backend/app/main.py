@@ -87,7 +87,10 @@ async def _cleanup_loop():
     import logging as _logging
     from datetime import datetime, timezone
     from .db.models import RefreshToken, BuyWanderLogin
-    from .services.auth_service import reauth_bw_login
+    from .services.auth_service import (
+        BuyWanderCredentialDecryptError,
+        reauth_bw_login,
+    )
 
     _logger = _logging.getLogger(__name__)
     _purge_counter = 0
@@ -138,6 +141,12 @@ async def _cleanup_loop():
                 try:
                     reauth_bw_login(login, db)
                     _logger.info("Session refreshed for %s", login.bw_email)
+                except BuyWanderCredentialDecryptError as ex:
+                    _logger.warning(
+                        "Session refresh skipped for %s: %s",
+                        login.bw_email,
+                        ex,
+                    )
                 except Exception as ex:
                     _logger.warning(
                         "Proactive session refresh failed for %s: %s",

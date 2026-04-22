@@ -84,9 +84,7 @@ def _get_alembic_revision_state(
 
             current_versions = {
                 row[0]
-                for row in conn.execute(
-                    text("SELECT version_num FROM alembic_version")
-                )
+                for row in conn.execute(text("SELECT version_num FROM alembic_version"))
             }
     except Exception as ex:
         return "unknown", f"Failed to inspect migration state: {ex}"

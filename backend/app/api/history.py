@@ -2,7 +2,6 @@
 backend/app/api/history.py — Won-auction history endpoints.
 """
 
-from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -85,17 +84,19 @@ def refresh_history(
                 won_at = parse_dt(won_at_str)
             except Exception:
                 pass
-        hr = HistoryRecord(
-            login_id=login_id,
-            auction_id=aid,
-            title=rec.get("title", ""),
-            url=rec.get("url", ""),
-            condition=rec.get("condition", ""),
-            final_price=rec.get("final_price", 0.0),
-            my_bid=rec.get("my_bid", 0.0),
-            store_location_id=rec.get("store_location_id", ""),
-            won_at=won_at or datetime.now(timezone.utc),
-        )
+        history_kwargs = {
+            "login_id": login_id,
+            "auction_id": aid,
+            "title": rec.get("title", ""),
+            "url": rec.get("url", ""),
+            "condition": rec.get("condition", ""),
+            "final_price": rec.get("final_price", 0.0),
+            "my_bid": rec.get("my_bid", 0.0),
+            "store_location_id": rec.get("store_location_id", ""),
+        }
+        if won_at is not None:
+            history_kwargs["won_at"] = won_at
+        hr = HistoryRecord(**history_kwargs)
         db.add(hr)
         added += 1
 

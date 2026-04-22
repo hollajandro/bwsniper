@@ -4,11 +4,14 @@ backend/app/services/snipe_service.py — High-level snipe orchestration.
 Bridges API routes → DB operations → worker pool management.
 """
 
+import json
 import logging
 import time
 from sqlalchemy.orm import Session as DBSession
 
-from ..db.models import Snipe, BuyWanderLogin, SnipeStatus
+from ..db.database import SessionLocal
+from ..db.models import Snipe, BuyWanderLogin, SnipeStatus, UserConfig
+from . import notification_service
 from .buywander_api import extract_handle, create_bw_session
 from .auction_worker import AuctionWorker
 from .worker_pool import pool
@@ -17,6 +20,37 @@ from .worker_pool import pool
 def _get_bw_session(login: BuyWanderLogin):
     """Recreate a requests.Session from stored encrypted cookies."""
     return create_bw_session(login.encrypted_cookies)
+
+
+def build_notification_fn(user_id: str, snipe_id: str):
+    """Build a notification callback that re-reads prefs when the snipe ends."""
+
+    def _fn(title, status, bid_amount, final_price):
+        db = SessionLocal()
+        try:
+            cfg_rec = db.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+            cfg = json.loads(cfg_rec.config_json) if cfg_rec else {}
+            snipe_rec = db.query(Snipe).filter(Snipe.id == snipe_id).first()
+            snipe_notify = snipe_rec.notify if snipe_rec else None
+        except Exception:
+            cfg = {}
+            snipe_notify = None
+        finally:
+            db.close()
+
+        if snipe_notify is False:
+            return
+
+        notif = cfg.get("notifications", {})
+        if snipe_notify is None:
+            if status == "Won" and not notif.get("notify_on_won", True):
+                return
+            if status == "Lost" and not notif.get("notify_on_lost", True):
+                return
+
+        notification_service.notify_outcome(cfg, title, status, bid_amount, final_price)
+
+    return _fn
 
 
 def create_snipe(
@@ -70,7 +104,7 @@ def create_snipe(
         bid_amount=bid_amount,
         snipe_seconds=snipe_seconds,
         ws_manager=ws_manager,
-        notification_fn=notification_fn,
+        notification_fn=notification_fn or build_notification_fn(user_id, snipe.id),
         bw_email=login.bw_email,
         encrypted_password=login.encrypted_password,
     )
@@ -195,6 +229,7 @@ def restart_active_snipes(db: DBSession, ws_manager=None):
                 bid_amount=snipe.bid_amount,
                 snipe_seconds=snipe.snipe_seconds,
                 ws_manager=ws_manager,
+                notification_fn=build_notification_fn(login.user_id, snipe.id),
                 bw_email=login.bw_email,
                 encrypted_password=login.encrypted_password,
             )

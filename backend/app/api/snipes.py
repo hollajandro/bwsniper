@@ -2,13 +2,12 @@
 backend/app/api/snipes.py — Snipe CRUD endpoints.
 """
 
-import json
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from ..db.database import get_db
-from ..db.models import User, UserConfig
+from ..db.models import User
 from ..db.schemas import SnipeCreate, SnipeUpdate, SnipeResponse
 from ..dependencies import get_current_user
 from ..db.models import BuyWanderLogin, Snipe
@@ -18,49 +17,10 @@ from ..services.snipe_service import (
     delete_snipe,
     get_user_snipes,
 )
-from ..services import notification_service
 from ..websocket.manager import ws_manager
 from ..api.auth import limiter
 
 router = APIRouter(prefix="/snipes", tags=["snipes"])
-
-
-def _make_notification_fn(user_id: str, snipe_id_ref: list):
-    """Build a notification callback that re-reads user prefs at send time.
-
-    snipe_id_ref is a one-element list [snipe_id] so that the caller can
-    populate the ID after create_snipe returns (late-binding).  The worker
-    only invokes this function when the auction ends, so the ID is always set.
-    """
-    from ..db.database import SessionLocal
-
-    def _fn(title, status, bid_amount, final_price):
-        # Read config fresh so preference changes after snipe creation are honoured
-        db = SessionLocal()
-        try:
-            cfg_rec = db.query(UserConfig).filter(UserConfig.user_id == user_id).first()
-            cfg = json.loads(cfg_rec.config_json) if cfg_rec else {}
-            # Also read the snipe's per-snipe notify override
-            snipe_rec = db.query(Snipe).filter(Snipe.id == snipe_id_ref[0]).first()
-            snipe_notify = snipe_rec.notify if snipe_rec else None
-        except Exception:
-            cfg = {}
-            snipe_notify = None
-        finally:
-            db.close()
-
-        # Per-snipe override takes priority
-        if snipe_notify is False:
-            return
-        notif = cfg.get("notifications", {})
-        if snipe_notify is None:  # use global setting
-            if status == "Won" and not notif.get("notify_on_won", True):
-                return
-            if status == "Lost" and not notif.get("notify_on_lost", True):
-                return
-        notification_service.notify_outcome(cfg, title, status, bid_amount, final_price)
-
-    return _fn
 
 
 @router.post("", response_model=SnipeResponse)
@@ -71,11 +31,6 @@ def add_snipe(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Use a mutable container so the notification closure can reference the snipe
-    # ID after create_snipe assigns it (the worker only calls the fn after the
-    # auction ends, so the ID will always be populated by then).
-    snipe_id_ref: list[str | None] = [None]
-    notification_fn = _make_notification_fn(user.id, snipe_id_ref)
     try:
         snipe = create_snipe(
             db,
@@ -85,10 +40,9 @@ def add_snipe(
             req.bid_amount,
             req.snipe_seconds,
             ws_manager=ws_manager,
-            notification_fn=notification_fn,
+            notification_fn=None,
             notify=req.notify,
         )
-        snipe_id_ref[0] = snipe.id
     except ValueError as ex:
         raise HTTPException(status_code=400, detail=str(ex))
     return snipe

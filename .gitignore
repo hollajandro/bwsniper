@@ -1,4 +1,3 @@
-```
 # Python
 __pycache__/
 *.py[cod]
@@ -27,6 +26,24 @@ env/
 ENV/
 .venv/
 .env/
+
+# Node / frontend build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Runtime data / secrets
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+*.key
+
+# Local test/install scratch space
+frontend/.npm-cache/
+backend/.pip-cache/
+backend/.pip-tmp/
+backend/.testdeps/
 
 # IDE
 .vscode/
@@ -82,4 +99,3 @@ Thumbs.db
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```

@@ -49,6 +49,7 @@ ALLOWED_SORT = frozenset(
         "LowestRetail",
     }
 )
+SORT_FALLBACKS = {"NewlyListed": "EndingSoonest"}
 
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
@@ -290,6 +291,21 @@ def fetch_active_auctions(
         json=payload,
         timeout=15,
     )
+    if not r.ok and r.status_code == 400 and sort_by in SORT_FALLBACKS:
+        fallback_sort = SORT_FALLBACKS[sort_by]
+        fallback_payload = {**payload, "sortBy": fallback_sort}
+        log.warning(
+            "Auction search rejected sort '%s'; retrying with '%s'",
+            sort_by,
+            fallback_sort,
+        )
+        r = session.post(
+            f"{BW_API_BASE}/api/site/Auctions/search",
+            json=fallback_payload,
+            timeout=15,
+        )
+        if r.ok:
+            return r.json()
     if not r.ok:
         body = r.text[:300].strip()
         log.error(

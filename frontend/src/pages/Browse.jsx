@@ -18,10 +18,9 @@ import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
 import { getAllImgs } from '../utils/images'
 
-const SORTS = [
+const LEGACY_SORTS = [
   { value: 'EndingSoonest',       label: 'Ending Soonest' },
-  { value: 'EndingLatest',        label: 'Ending Latest' },
-  { value: 'NewArrivals',         label: 'New Arrivals' },
+  { value: 'NewlyListed',         label: 'Newly Listed' },
   { value: 'CurrentPriceLowest',  label: 'Price ↑' },
   { value: 'CurrentPriceHighest', label: 'Price ↓' },
   { value: 'RetailPriceLowest',   label: 'Retail ↑' },
@@ -29,6 +28,17 @@ const SORTS = [
   { value: 'BidsLowest',          label: 'Bids ↑' },
   { value: 'BidsHighest',         label: 'Bids ↓' },
 ]
+
+const SORTS = [
+  { value: 'EndingSoonest', label: 'Ending Soonest' },
+  { value: 'NewlyListed', label: 'Newly Listed' },
+  { value: 'LowestBid', label: 'Price Low' },
+  { value: 'HighestBid', label: 'Price High' },
+  { value: 'LowestRetail', label: 'Retail Low' },
+  { value: 'HighestRetail', label: 'Retail High' },
+  { value: 'MostBids', label: 'Most Bids' },
+]
+void LEGACY_SORTS
 
 const CONDITIONS = [
   { value: 'New',            label: 'New' },

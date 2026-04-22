@@ -71,8 +71,20 @@ export default function Settings() {
     setSaveStatus('saving')
     const timer = setTimeout(async () => {
       try {
-        const res = await putRef.current('/settings', settings)
-        setSaveStatus(res.ok ? 'saved' : 'error')
+        const res = await putRef.current('/settings', {
+          defaults: settings.defaults,
+          notifications: settings.notifications,
+          serper_api_key: settings.serper_api_key,
+          version: settings.updated_at,
+        })
+        if (!res.ok) {
+          setSaveStatus('error')
+          return
+        }
+        const updated = await res.json()
+        skipSaveRef.current = true
+        setSettings(updated)
+        setSaveStatus('saved')
       } catch {
         setSaveStatus('error')
       }

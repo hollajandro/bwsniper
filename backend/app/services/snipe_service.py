@@ -25,7 +25,15 @@ def _get_bw_session(login: BuyWanderLogin):
 def build_notification_fn(user_id: str, snipe_id: str):
     """Build a notification callback that re-reads prefs when the snipe ends."""
 
-    def _fn(title, status, bid_amount, final_price):
+    def _fn(
+        *,
+        title,
+        bid_amount,
+        status=None,
+        final_price=None,
+        current_bid=None,
+        event_type="outcome",
+    ):
         db = SessionLocal()
         try:
             cfg_rec = db.query(UserConfig).filter(UserConfig.user_id == user_id).first()
@@ -42,13 +50,28 @@ def build_notification_fn(user_id: str, snipe_id: str):
             return
 
         notif = cfg.get("notifications", {})
+        if event_type == "max_bid_exceeded":
+            notification_service.notify_max_bid_exceeded(
+                cfg,
+                title,
+                bid_amount,
+                current_bid if current_bid is not None else 0.0,
+            )
+            return
+
         if snipe_notify is None:
             if status == "Won" and not notif.get("notify_on_won", True):
                 return
             if status == "Lost" and not notif.get("notify_on_lost", True):
                 return
 
-        notification_service.notify_outcome(cfg, title, status, bid_amount, final_price)
+        notification_service.notify_outcome(
+            cfg,
+            title,
+            status,
+            bid_amount,
+            final_price if final_price is not None else 0.0,
+        )
 
     return _fn
 
@@ -105,6 +128,7 @@ def create_snipe(
         snipe_seconds=snipe_seconds,
         ws_manager=ws_manager,
         notification_fn=notification_fn or build_notification_fn(user_id, snipe.id),
+        max_bid_exceeded_notified=snipe.max_bid_exceeded_notified,
         bw_email=login.bw_email,
         encrypted_password=login.encrypted_password,
     )
@@ -139,6 +163,7 @@ def update_snipe(
         update_data = {}
     if "bid_amount" in update_data:
         snipe.bid_amount = update_data["bid_amount"]
+        snipe.max_bid_exceeded_notified = False
     if "snipe_seconds" in update_data:
         snipe.snipe_seconds = update_data["snipe_seconds"]
     if "notify" in update_data:
@@ -151,6 +176,7 @@ def update_snipe(
     if worker and worker.is_alive():
         if "bid_amount" in update_data:
             worker.bid_amount = update_data["bid_amount"]
+            worker.max_bid_exceeded_notified = False
         if "snipe_seconds" in update_data:
             worker.snipe_seconds = update_data["snipe_seconds"]
 
@@ -230,6 +256,7 @@ def restart_active_snipes(db: DBSession, ws_manager=None):
                 snipe_seconds=snipe.snipe_seconds,
                 ws_manager=ws_manager,
                 notification_fn=build_notification_fn(login.user_id, snipe.id),
+                max_bid_exceeded_notified=snipe.max_bid_exceeded_notified,
                 bw_email=login.bw_email,
                 encrypted_password=login.encrypted_password,
             )

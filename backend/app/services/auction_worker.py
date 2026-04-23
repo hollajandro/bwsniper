@@ -43,6 +43,7 @@ class AuctionWorker(threading.Thread):
         snipe_seconds: int,
         ws_manager=None,
         notification_fn=None,
+        max_bid_exceeded_notified: bool = False,
         bw_email: str | None = None,
         encrypted_password: str | None = None,
     ):
@@ -55,6 +56,7 @@ class AuctionWorker(threading.Thread):
         self.handle = handle
         self.ws_manager = ws_manager
         self.notification_fn = notification_fn
+        self.max_bid_exceeded_notified = max_bid_exceeded_notified
         self._bw_email = bw_email
         self._encrypted_pw = encrypted_password
         self._stop_event = threading.Event()
@@ -261,6 +263,31 @@ class AuctionWorker(threading.Thread):
 
     # ── Main loop ────────────────────────────────────────────────────────────
 
+    def _notify_if_bid_limit_exceeded(
+        self, title: str, cur_bid: float, is_me: bool
+    ) -> None:
+        """Send a one-time alert when the live bid has crossed the snipe max."""
+        if self.notification_fn is None:
+            return
+        if is_me or self.max_bid_exceeded_notified or cur_bid <= self.bid_amount:
+            return
+
+        self.max_bid_exceeded_notified = True
+        self._update_snipe(max_bid_exceeded_notified=True)
+        self._log_event(
+            (
+                f"Current bid ${cur_bid:.2f} exceeded your snipe max "
+                f"${self.bid_amount:.2f} for {title[:40]}"
+            ),
+            "warning",
+        )
+        self.notification_fn(
+            event_type="max_bid_exceeded",
+            title=title,
+            bid_amount=self.bid_amount,
+            current_bid=cur_bid,
+        )
+
     def run(self):
         # ── Initial load ────────────────────────────────────────────────────
         try:
@@ -429,11 +456,23 @@ class AuctionWorker(threading.Thread):
                         )
 
                 if self.notification_fn:
-                    self.notification_fn(title, final_status, self.bid_amount, cur_bid)
+                    self.notification_fn(
+                        event_type="outcome",
+                        title=title,
+                        status=final_status,
+                        bid_amount=self.bid_amount,
+                        final_price=cur_bid,
+                    )
                 return
 
             # ── Fire snipe ──────────────────────────────────────────────────
+            self._notify_if_bid_limit_exceeded(title, cur_bid, is_me)
+
             if not bid_placed and secs_left <= self.snipe_seconds:
+                if cur_bid > self.bid_amount:
+                    self._stop_event.wait(0.5)
+                    continue
+
                 self._log_event(
                     f"SNIPING {title[:28]}: ${self.bid_amount:.2f} "
                     f"({secs_left:.1f}s left)",

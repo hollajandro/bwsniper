@@ -31,6 +31,13 @@ function fmtSecs(s) {
 
 // ─── Auction detail modal (from snipe click) ─────────────────────────────────
 
+function snipeNeedsAttention(snipe) {
+  return !TERMINAL.has(snipe.status)
+    && !snipe.bid_placed
+    && !snipe.is_me
+    && snipe.current_bid > snipe.bid_amount
+}
+
 function SnipeDetailModal({ snipe, priceCache, onClose }) {
   const { get } = useApi()
   const [detail, setDetail]     = useState(null)
@@ -391,9 +398,10 @@ function SnipeRow({ snipe, onDelete, onEdit, onItemClick }) {
   }, [snipe.end_time])
 
   const isTerminal = TERMINAL.has(snipe.status)
+  const needsAttention = snipeNeedsAttention(snipe)
 
   return (
-    <tr className="border-b border-gray-800 hover:bg-gray-800/50">
+    <tr className={`border-b border-gray-800 hover:bg-gray-800/50 ${needsAttention ? 'bg-bw-red/5' : ''}`}>
       <td className="px-3 py-2">
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[snipe.status] || 'bg-gray-700/50 text-gray-400 border border-gray-600/50'}`}>
           {snipe.status}
@@ -406,11 +414,14 @@ function SnipeRow({ snipe, onDelete, onEdit, onItemClick }) {
         >
           {snipe.title || snipe.url}
         </button>
+        {needsAttention && (
+          <p className="mt-1 text-xs text-bw-red font-medium">Above max bid - update needed</p>
+        )}
       </td>
       <td className="px-3 py-2 text-sm text-right font-mono">
         ${snipe.bid_amount?.toFixed(2)}
       </td>
-      <td className={`px-3 py-2 text-sm text-right font-mono ${snipe.is_me ? 'text-bw-green' : ''}`}>
+      <td className={`px-3 py-2 text-sm text-right font-mono ${needsAttention ? 'text-bw-red' : snipe.is_me ? 'text-bw-green' : ''}`}>
         {snipe.current_bid > 0 ? `$${snipe.current_bid.toFixed(2)}` : '—'}
         {snipe.is_me && <span className="ml-1 text-xs text-bw-green">★</span>}
       </td>
@@ -607,6 +618,7 @@ export default function Dashboard() {
 
   const active = useMemo(() => snipes.filter(s => !TERMINAL.has(s.status)), [snipes])
   const past = useMemo(() => snipes.filter(s => TERMINAL.has(s.status) && s.status !== 'Deleted'), [snipes])
+  const attentionSnipes = useMemo(() => active.filter(snipeNeedsAttention), [active])
 
   const stats = useMemo(() => {
     const acc = snipes.reduce((a, s) => {
@@ -732,6 +744,18 @@ export default function Dashboard() {
             : <span className="ml-2 text-gray-500 font-normal text-sm">(0)</span>
           }
         </h2>
+        {attentionSnipes.length > 0 && (
+          <div className="mb-3 rounded-lg border border-bw-red/30 bg-bw-red/10 px-4 py-3">
+            <p className="text-sm font-medium text-bw-red">
+              {attentionSnipes.length === 1
+                ? '1 active snipe is above your max bid'
+                : `${attentionSnipes.length} active snipes are above your max bids`}
+            </p>
+            <p className="mt-1 text-xs text-bw-red/80">
+              Review those snipes and raise the max bid if you still want them to fire.
+            </p>
+          </div>
+        )}
         {active.length === 0 ? (
           <p className="text-gray-500 text-sm">No active snipes. Add one above or use the Browse page.</p>
         ) : (

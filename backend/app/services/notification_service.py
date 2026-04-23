@@ -71,6 +71,24 @@ def notify_outcome(
     _dispatch(cfg, subject, body, log_fn)
 
 
+def notify_max_bid_exceeded(
+    cfg: dict,
+    title: str,
+    bid_amount: float,
+    current_bid: float,
+    log_fn: Callable | None = None,
+):
+    """Notify that the live bid has already exceeded the configured snipe max."""
+    subject = f"Snipe max exceeded: {title[:50]}"
+    body = (
+        f'Auction "{title}" is now above your configured snipe max.\n'
+        f"Your max bid: ${bid_amount:.2f}\n"
+        f"Current bid: ${current_bid:.2f}\n"
+        "Increase the snipe amount if you still want to bid."
+    )
+    _dispatch(cfg, subject, body, log_fn)
+
+
 def notify_keyword_match(cfg: dict, keyword: str, title: str, cur_bid: float, url: str):
     """Keyword watch: a new auction matching a keyword was found."""
     subject = f"New auction: {keyword}"

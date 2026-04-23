@@ -158,6 +158,9 @@ class Snipe(Base):
         DateTime(timezone=True), nullable=True
     )
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    max_bid_exceeded_notified: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     notify: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow

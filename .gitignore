@@ -44,6 +44,7 @@ frontend/.npm-cache/
 backend/.pip-cache/
 backend/.pip-tmp/
 backend/.testdeps/
+.playwright-cli/
 
 # IDE
 .vscode/

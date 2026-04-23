@@ -41,8 +41,11 @@ export default function Settings() {
   const [addingLogin, setAddingLogin] = useState(false)
 
   const skipSaveRef = useRef(true) // skip auto-save on initial load
+  const latestSettingsRef = useRef(null)
+  const saveRequestSeqRef = useRef(0)
   const putRef = useRef(put)
   useEffect(() => { putRef.current = put }, [put])
+  useEffect(() => { latestSettingsRef.current = settings }, [settings])
 
   // ── Load ────────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -69,24 +72,33 @@ export default function Settings() {
       return
     }
     setSaveStatus('saving')
+    const snapshot = settings
+    const requestSeq = ++saveRequestSeqRef.current
     const timer = setTimeout(async () => {
       try {
         const res = await putRef.current('/settings', {
-          defaults: settings.defaults,
-          notifications: settings.notifications,
-          serper_api_key: settings.serper_api_key,
-          version: settings.updated_at,
+          defaults: snapshot.defaults,
+          notifications: snapshot.notifications,
+          serper_api_key: snapshot.serper_api_key,
+          version: snapshot.updated_at,
         })
         if (!res.ok) {
-          setSaveStatus('error')
+          if (requestSeq === saveRequestSeqRef.current && latestSettingsRef.current === snapshot) {
+            setSaveStatus('error')
+          }
           return
         }
         const updated = await res.json()
+        if (requestSeq !== saveRequestSeqRef.current || latestSettingsRef.current !== snapshot) {
+          return
+        }
         skipSaveRef.current = true
         setSettings(updated)
         setSaveStatus('saved')
       } catch {
-        setSaveStatus('error')
+        if (requestSeq === saveRequestSeqRef.current && latestSettingsRef.current === snapshot) {
+          setSaveStatus('error')
+        }
       }
     }, 800)
     return () => clearTimeout(timer)
@@ -318,7 +330,7 @@ export default function Settings() {
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
               className="field flex-1"
             />
-            <button onClick={addKeyword}
+            <button type="button" onClick={addKeyword}
               className="btn btn-primary whitespace-nowrap">
               Add
             </button>
@@ -351,7 +363,7 @@ export default function Settings() {
                       ))}
                     </select>
                   )}
-                  <button onClick={() => removeKeyword(kw)} aria-label={`Remove keyword ${kw}`} className="text-gray-400 hover:text-bw-red ml-1">✕</button>
+                  <button type="button" onClick={() => removeKeyword(kw)} aria-label={`Remove keyword ${kw}`} className="text-gray-400 hover:text-bw-red ml-1">✕</button>
                 </span>
               )
             })}
@@ -375,6 +387,7 @@ export default function Settings() {
                 {cfg.enabled && (
                   <>
                     <button
+                      type="button"
                       onClick={() => testChannel(ch)}
                       disabled={testingChannel === ch}
                       className="btn btn-ghost text-xs ml-auto"

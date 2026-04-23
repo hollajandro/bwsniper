@@ -2,6 +2,7 @@
 backend/app/api/settings.py — User settings CRUD.
 """
 
+from datetime import datetime, timezone
 import json
 import logging
 from fastapi import APIRouter, Depends, HTTPException
@@ -55,6 +56,17 @@ def _deep_merge(base: dict, overlay: dict) -> dict:
     return result
 
 
+def _truncate_to_seconds_utc(value: datetime) -> datetime:
+    return value.astimezone(timezone.utc).replace(microsecond=0)
+
+
+def _parse_settings_version(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return _truncate_to_seconds_utc(parsed)
+
+
 def _get_or_create_config(db: Session, user: User) -> UserConfig:
     cfg = db.query(UserConfig).filter(UserConfig.user_id == user.id).first()
     if not cfg:
@@ -94,14 +106,16 @@ def update_settings(
     cfg = _get_or_create_config(db, user)
 
     if req.version is not None:
-        # Compare as ISO strings (truncate to seconds to avoid microsecond drift)
-        db_ts = (
-            cfg.updated_at.replace(microsecond=0).isoformat()
-            if cfg.updated_at
-            else None
-        )
-        req_ts = req.version[:19]  # keep YYYY-MM-DDTHH:MM:SS
-        if db_ts and req_ts and db_ts != req_ts:
+        try:
+            req_ts = _parse_settings_version(req.version)
+        except ValueError as ex:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid settings version.",
+            ) from ex
+
+        db_ts = _truncate_to_seconds_utc(cfg.updated_at) if cfg.updated_at else None
+        if db_ts and db_ts != req_ts:
             raise HTTPException(
                 status_code=409,
                 detail="Settings were modified in another tab. Please reload.",

@@ -29,6 +29,14 @@ function fmtDateShort(iso) {
   }
 }
 
+function getErrorDetail(err) {
+  return typeof err?.detail === 'string' ? err.detail : ''
+}
+
+function isCredentialRepairError(err) {
+  return getErrorDetail(err).includes('can no longer be decrypted')
+}
+
 export default function Cart() {
   const { get, post, put, del } = useApi()
   const [logins, setLogins]           = useState([])
@@ -49,6 +57,10 @@ export default function Cart() {
   const [msg, setMsg]                   = useState('')
   const [payMsg, setPayMsg]             = useState('')
   const [paying, setPaying]             = useState(false)
+  const [showRepairPrompt, setShowRepairPrompt] = useState(false)
+  const [repairEmail, setRepairEmail]   = useState('')
+  const [repairPassword, setRepairPassword] = useState('')
+  const [repairing, setRepairing]       = useState(false)
 
   // Appointment scheduling state
   const [scheduleOpen, setScheduleOpen]   = useState(false)
@@ -106,30 +118,93 @@ export default function Cart() {
     if (match) setLocationId(defaultLocationId)
   }, [defaultLocationId])
 
+  const activeLogin = logins.find(l => l.id === loginId) || null
+
+  useEffect(() => {
+    setShowRepairPrompt(false)
+    setRepairPassword('')
+    setRepairEmail(activeLogin?.bw_email || '')
+  }, [activeLogin?.id, activeLogin?.bw_email])
+
+  function handleCredentialRepairError(err) {
+    setRepairEmail(activeLogin?.bw_email || '')
+    setRepairPassword('')
+    setShowRepairPrompt(true)
+    return fmtApiError(err, 'BuyWander login needs to be updated.')
+  }
+
   const loadCart = useCallback(async () => {
     if (!loginId || !locationId) return
     setLoading(true)
     setMsg('')
     try {
-      const [cartRes, removalRes] = await Promise.all([
-        get(`/cart/${loginId}?store_location_id=${locationId}`),
-        get(`/cart/${loginId}/removal-status?store_location_id=${locationId}`),
-      ])
-      if (cartRes.ok) {
-        const data = await cartRes.json()
-        setCartData(data.cart_data)
-        setReserved(data.reserved || [])
-        setPayMethods(data.methods || [])
-      } else {
-        setMsg('Failed to load cart.')
+      const cartRes = await get(`/cart/${loginId}?store_location_id=${locationId}`)
+      if (!cartRes.ok) {
+        const err = await cartRes.json().catch(() => ({}))
+        setCartData(null)
+        setReserved([])
+        setPayMethods([])
+        setRemovalStatus(null)
+        setMsg(
+          isCredentialRepairError(err)
+            ? handleCredentialRepairError(err)
+            : fmtApiError(err, 'Failed to load cart.')
+        )
+        return
       }
-      if (removalRes.ok) setRemovalStatus(await removalRes.json())
+
+      const data = await cartRes.json()
+      setShowRepairPrompt(false)
+      setCartData(data.cart_data)
+      setReserved(data.reserved || [])
+      setPayMethods(data.methods || [])
+
+      const removalRes = await get(
+        `/cart/${loginId}/removal-status?store_location_id=${locationId}`
+      )
+      if (removalRes.ok) {
+        setRemovalStatus(await removalRes.json())
+      } else {
+        const err = await removalRes.json().catch(() => ({}))
+        setRemovalStatus(null)
+        setMsg(
+          isCredentialRepairError(err)
+            ? handleCredentialRepairError(err)
+            : fmtApiError(err, 'Failed to load cart removal status.')
+        )
+      }
     } finally {
       setLoading(false)
     }
-  }, [loginId, locationId, get])
+  }, [loginId, locationId, get, activeLogin])
 
   useEffect(() => { loadCart() }, [loadCart])
+
+  async function handleRepairLogin(e) {
+    e.preventDefault()
+    if (!activeLogin) return
+    setRepairing(true)
+    setMsg('')
+    try {
+      const res = await put(`/logins/${activeLogin.id}`, {
+        bw_email: repairEmail.trim(),
+        bw_password: repairPassword,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMsg(fmtApiError(err, 'Failed to update BuyWander login.'))
+        return
+      }
+      const updatedLogin = await res.json()
+      setLogins(prev => prev.map(l => (l.id === updatedLogin.id ? updatedLogin : l)))
+      setShowRepairPrompt(false)
+      setRepairPassword('')
+      setMsg('BuyWander login updated. Reloading cart...')
+      await loadCart()
+    } finally {
+      setRepairing(false)
+    }
+  }
 
   async function handlePay() {
     if (!loginId || !locationId) return
@@ -149,7 +224,11 @@ export default function Cart() {
           : '✓ Payment successful! Items moved to "Paid Items Awaiting Pickup".'
         setPayMsg(msg)
       } else {
-        setPayMsg(fmtApiError(body, 'Payment failed.'))
+        setPayMsg(
+          isCredentialRepairError(body)
+            ? handleCredentialRepairError(body)
+            : fmtApiError(body, 'Payment failed.')
+        )
       }
     } catch (e) {
       console.error('[pay] error', e)
@@ -179,7 +258,12 @@ export default function Cart() {
       setMsg('Item removed.')
       await loadCart()
     } else {
-      setMsg('Failed to remove item.')
+      const err = await res.json().catch(() => ({}))
+      setMsg(
+        isCredentialRepairError(err)
+          ? handleCredentialRepairError(err)
+          : fmtApiError(err, 'Failed to remove item.')
+      )
     }
   }
 
@@ -199,7 +283,12 @@ export default function Cart() {
         setAvailSlots(slots)
         if (slots.length === 0) setSlotsError('No available slots on that day.')
       } else {
-        setSlotsError('Failed to load available slots.')
+        const err = await res.json().catch(() => ({}))
+        setSlotsError(
+          isCredentialRepairError(err)
+            ? handleCredentialRepairError(err)
+            : fmtApiError(err, 'Failed to load available slots.')
+        )
       }
     } catch {
       setSlotsError('Network error loading slots.')
@@ -228,7 +317,11 @@ export default function Cart() {
         await loadCart()
       } else {
         const err = await res.json().catch(() => ({}))
-        setMsg(fmtApiError(err, 'Failed to schedule appointment.'))
+        setMsg(
+          isCredentialRepairError(err)
+            ? handleCredentialRepairError(err)
+            : fmtApiError(err, 'Failed to schedule appointment.')
+        )
       }
     } finally {
       setScheduling(false)
@@ -247,7 +340,11 @@ export default function Cart() {
         await loadCart()
       } else {
         const err = await res.json().catch(() => ({}))
-        setMsg(fmtApiError(err, 'Failed to cancel appointment.'))
+        setMsg(
+          isCredentialRepairError(err)
+            ? handleCredentialRepairError(err)
+            : fmtApiError(err, 'Failed to cancel appointment.')
+        )
       }
     } finally {
       setCancellingAppt(false)
@@ -315,6 +412,59 @@ export default function Cart() {
 
       {msg && (
         <div className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-sm">{msg}</div>
+      )}
+      {showRepairPrompt && activeLogin && (
+        <form
+          onSubmit={handleRepairLogin}
+          className="bg-bw-yellow/10 border border-bw-yellow/30 rounded-lg px-4 py-4 space-y-3"
+        >
+          <div>
+            <p className="text-sm font-medium text-bw-yellow">
+              BuyWander login needs to be refreshed
+            </p>
+            <p className="text-xs text-bw-yellow/80 mt-1">
+              This only appears when the saved BuyWander password can no longer be used.
+              Enter the current login details for this account and the cart will retry automatically.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+            <div>
+              <label className="block text-xs text-gray-300 mb-1" htmlFor="repair-email">
+                BuyWander email
+              </label>
+              <input
+                id="repair-email"
+                type="email"
+                value={repairEmail}
+                onChange={e => setRepairEmail(e.target.value)}
+                disabled={repairing}
+                className="field w-full"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-300 mb-1" htmlFor="repair-password">
+                Current password
+              </label>
+              <input
+                id="repair-password"
+                type="password"
+                value={repairPassword}
+                onChange={e => setRepairPassword(e.target.value)}
+                disabled={repairing}
+                className="field w-full"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={repairing}
+              className="btn btn-primary whitespace-nowrap"
+            >
+              {repairing ? 'Updating...' : 'Update Login'}
+            </button>
+          </div>
+        </form>
       )}
       {payMsg && (
         <div className={`rounded px-4 py-2 text-sm font-medium ${payMsg.startsWith('✓') ? 'bg-bw-green/10 border border-bw-green/30 text-bw-green' : 'bg-bw-red/10 border border-bw-red/30 text-bw-red'}`}>

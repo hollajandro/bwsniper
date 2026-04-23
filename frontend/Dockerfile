@@ -12,13 +12,16 @@ COPY . .
 RUN npm run build
 
 # ── Stage 2: serve with nginx ────────────────────────────────────────────────
-FROM nginx:1.27-alpine
+FROM alpine:3.22
 
-# Remove the default site config
-RUN rm /etc/nginx/conf.d/default.conf
+# Install the distro nginx package instead of the official nginx image, which
+# includes extra modules that pull in libxpm.
+RUN apk add --no-cache nginx \
+    && mkdir -p /run/nginx \
+    && rm -f /etc/nginx/http.d/default.conf
 
 # Copy our nginx site config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Copy the Vite build output
 COPY --from=build /app/dist /usr/share/nginx/html

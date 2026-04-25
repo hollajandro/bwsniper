@@ -68,6 +68,12 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    remote_redundancy_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    remote_agent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("remote_agents.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
@@ -86,6 +92,9 @@ class User(Base):
     )
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    remote_agent: Mapped["RemoteAgent | None"] = relationship(
+        "RemoteAgent", back_populates="users"
     )
 
 
@@ -182,6 +191,81 @@ class Snipe(Base):
     __table_args__ = (
         Index("ix_snipe_login", "login_id"),
         Index("ix_snipe_status", "status"),
+    )
+
+
+class RemoteAgent(Base):
+    __tablename__ = "remote_agents"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    api_key_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    clock_offset_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
+
+    users: Mapped[list["User"]] = relationship("User", back_populates="remote_agent")
+    snipe_states: Mapped[list["RemoteSnipeState"]] = relationship(
+        "RemoteSnipeState", back_populates="agent", cascade="all, delete-orphan"
+    )
+
+
+class RemoteSnipeState(Base):
+    __tablename__ = "remote_snipe_state"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=_new_uuid,
+    )
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("remote_agents.id"), nullable=False
+    )
+    snipe_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("snipes.id"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(32), default=SnipeStatus.LOADING)
+    last_error: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    payload_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_heartbeat_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    fired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
+    )
+
+    agent: Mapped["RemoteAgent"] = relationship(
+        "RemoteAgent", back_populates="snipe_states"
+    )
+    snipe: Mapped["Snipe"] = relationship("Snipe")
+
+    __table_args__ = (
+        Index("ix_remote_snipe_state_agent", "agent_id"),
+        Index("ix_remote_snipe_state_snipe", "snipe_id"),
+        Index("ix_remote_snipe_state_agent_snipe", "agent_id", "snipe_id", unique=True),
     )
 
 

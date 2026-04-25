@@ -31,6 +31,7 @@ The Docker Compose stack includes:
 | `redis` | redis:7-alpine | Cache & job queue | Internal |
 | `backend` | Custom build | FastAPI application | 8000 |
 | `frontend` | Custom build | React + Nginx | 80 |
+| `remote-agent` | Custom build | Optional redundant snipe executor | Internal |
 
 ### Data Persistence
 
@@ -75,6 +76,50 @@ OTEL_EXPORTER_ENDPOINT=http://jaeger:4317
 
 # Serper.dev API key for price comparison
 SERPER_API_KEY=your-serper-key
+
+# Optional remote redundancy agent
+MAIN_BACKEND_URL=https://your-main-backend.example.com
+REMOTE_AGENT_ID=agent-id-from-admin
+REMOTE_AGENT_API_KEY=one-time-key-from-admin
+REMOTE_AGENT_POLL_INTERVAL_MS=3000
+```
+
+## Remote Redundancy Agent
+
+The remote agent is an optional backup bidder that can run in a different location from the main backend. It polls the backend for snipes assigned to its agent ID, attempts the same bid at the scheduled snipe time, and reports success, failures, clock offset, and last-seen health back to the backend.
+
+### Provision an Agent
+
+1. Start the main stack with `docker compose up -d`.
+2. Sign in as an admin and open the existing Admin page.
+3. In `Remote Agents`, create an agent with a name and region.
+4. Copy the one-time API key immediately. The key is never shown again.
+5. On the remote host, set `MAIN_BACKEND_URL`, `REMOTE_AGENT_ID`, and `REMOTE_AGENT_API_KEY`.
+6. Start the agent with `docker compose --profile redundancy up -d remote-agent`.
+
+If the key is lost or exposed, use `Rotate Key` in Admin, update `REMOTE_AGENT_API_KEY` on the remote host, and restart the agent.
+
+### Assign Users
+
+Remote redundancy is enabled per user, not globally. In Admin, select a remote agent in the user's `Remote Agent` column, then enable the user's `Redundancy` toggle. Disabling redundancy leaves the agent assignment saved so it can be re-enabled quickly later.
+
+### Health and Errors
+
+The Admin page shows each agent's enabled state, `last_seen_at`, `clock_offset_ms`, and `last_error`. Use the manual Refresh button to reload current health. Agent health does not block normal admin user management; if agent loading fails, the user table remains usable.
+
+### Running the Agent Remotely
+
+For a true redundant location, run the `remote-agent` service on separate infrastructure and set `MAIN_BACKEND_URL` to the public HTTPS URL of the main backend. The bundled Compose service is useful for local smoke tests and for hosts that can reach the backend over the Compose network.
+
+```bash
+# Build the image locally
+docker compose build remote-agent
+
+# Run the optional service
+docker compose --profile redundancy up -d remote-agent
+
+# View agent logs
+docker compose logs -f remote-agent
 ```
 
 ## Common Operations

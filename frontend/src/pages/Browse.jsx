@@ -284,13 +284,13 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-0 sm:items-center sm:p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+      <div role="dialog" aria-modal="true" className="bg-gray-900 border border-gray-700 rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-gray-800 gap-3">
+        <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-800 gap-3">
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-white leading-snug">
               {item.title || auction.item?.title || '(Untitled)'}
@@ -306,7 +306,7 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
 
           {/* Photo gallery */}
           {(() => {
@@ -602,7 +602,7 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800 flex items-center gap-3">
+        <div className="p-3 sm:p-4 border-t border-gray-800 flex items-center gap-3">
           {snipeSuccess && (
             <span className="text-bw-green text-xs font-medium flex-1">{snipeSuccess}</span>
           )}

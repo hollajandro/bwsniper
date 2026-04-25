@@ -1,0 +1,1 @@
+"""Remote redundant snipe agent."""

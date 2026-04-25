@@ -14,10 +14,12 @@ docker compose up -d
 ## Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
+
+- Docker and Docker Compose
 - BuyWander account credentials
 
-### 1. Clone & configure
+### 1. Clone and configure
+
 ```bash
 git clone https://github.com/hollajandro/bwsniper.git
 cd bwsniper
@@ -25,6 +27,7 @@ cp .env.example .env
 ```
 
 ### 2. Generate secrets
+
 ```bash
 # SECRET_KEY for JWT tokens
 python3 -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(48))" >> .env
@@ -34,11 +37,13 @@ python3 -c "from cryptography.fernet import Fernet; print('FERNET_KEY=' + Fernet
 ```
 
 ### 3. Deploy
+
 ```bash
 docker compose up -d
 ```
 
 ### 4. Access
+
 - **Frontend**: http://localhost
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
@@ -52,18 +57,23 @@ graph TB
     subgraph Frontend
         A[React SPA<br/>Nginx]
     end
-    
+
     subgraph Backend
         B[FastAPI Server]
         C[Auction Workers]
         D[WebSocket Manager]
+        H[Remote Agent Control Plane]
     end
-    
+
+    subgraph Redundancy
+        I[Optional Remote Agent]
+    end
+
     subgraph Data
         E[(PostgreSQL<br/>Primary DB)]
-        F[(Redis<br/>Cache & Session)]
+        F[(Redis<br/>Cache and Session)]
     end
-    
+
     User -->|HTTPS| A
     A -->|REST API| B
     A -->|WebSocket| D
@@ -73,45 +83,60 @@ graph TB
     C -->|Update DB| E
     C -->|Broadcast| D
     D -->|Real-time| A
+    I -->|Sync snipes and report events| H
+    I -->|Backup bid execution| G
 ```
 
 **Components:**
-- **Frontend**: React 18 + Vite + Tailwind CSS (served via Nginx on port 80)
+
+- **Frontend**: React 18 + Vite + Tailwind CSS, served via Nginx on port 80
 - **Backend**: FastAPI with background auction workers
-- **Database**: PostgreSQL 16 (persistent storage)
-- **Cache**: Redis 7 (session cache, rate limiting)
-- **Images**: Pre-built on GHCR (`ghcr.io/hollajandro/bwsniper-*`)
+- **Database**: PostgreSQL 16 for persistent storage
+- **Cache**: Redis 7 for session cache and rate limiting
+- **Remote Agent**: Optional Dockerized backup bidder that syncs enabled snipes from the backend
+- **Images**: Pre-built on GHCR using the `ghcr.io/hollajandro/bwsniper-*` image family
 
 ---
 
 ## Features
 
-### 🎯 Automated Sniping
+### Automated Sniping
+
 - **Precision timing** - Background workers fire bids at exact seconds before auction ends
 - **Live updates** - Real-time WebSocket push for status, countdowns, and current bids
 - **Per-snipe configuration** - Independent 1-120 second snipe windows per bid
 - **Thread-safe editing** - Modify bid amounts or timing on active snipes
-- **Win/loss notifications** - In-app toasts + optional email notifications
+- **Win/loss notifications** - In-app toasts plus optional email notifications
 
-### 🔍 Auction Browser
-- **Full catalog access** - Server-side pagination, infinite scroll
-- **Advanced filters** - Location, condition, price range, exact phrase search
-- **Smart sorting** - Ending soonest/latest, price, bids, retail value
-- **Quick filters** - Sniped, Watched, No Bids, $3 or Less, Ends Today, 90%+ Off
-- **Detail modals** - Full descriptions, image gallery, bid history, Google Shopping comparison
-- **Bulk snipe** - Select multiple auctions and queue simultaneously
+### Auction Browser
 
-### 📊 Dashboard
-- **Active snipes table** - Live countdown, current bid, your bid, leading bidder
-- **History tracking** - Won/lost/ended auctions with final prices
-- **Statistics** - Win rate, total savings, average discount
+- **Full catalog access** - Server-side pagination and infinite scroll
+- **Advanced filters** - Location, condition, price range, and exact phrase search
+- **Smart sorting** - Ending soonest/latest, price, bids, and retail value
+- **Quick filters** - Sniped, Watched, No Bids, $3 or Less, Ends Today, and 90%+ Off
+- **Detail modals** - Full descriptions, image gallery, bid history, and Google Shopping comparison
+- **Bulk snipe** - Select multiple auctions and queue them simultaneously
+
+### Dashboard
+
+- **Active snipes table** - Live countdown, current bid, your bid, and leading bidder
+- **History tracking** - Won, lost, and ended auctions with final prices
+- **Statistics** - Win rate, total savings, and average discount
 - **Edit/cancel** - Modify or cancel any active snipe
 
-### 🛒 Cart Management
+### Cart Management
+
 - **Auto-add wins** - Won items automatically added to cart
 - **Real-time sync** - Live sync with BuyWander cart
 - **Checkout helper** - One-click checkout with saved payment methods
 - **Pickup scheduling** - Schedule, reschedule, or cancel pickup appointments
+
+### Remote Redundancy
+
+- **Backup execution agent** - Run an optional remote agent in another location to fire enabled snipes if the main location is delayed or disrupted
+- **Admin-managed rollout** - Admins create agents, rotate API keys, enable or disable agents, and assign redundancy per user from the existing Admin page
+- **Snipe sync and health reporting** - Enabled accounts stay synced to the assigned agent, while clock offset, last seen time, and last error are reported back to the backend
+- **Docker-first deployment** - The agent builds and runs as its own Docker image alongside the frontend and backend images
 
 ---
 
@@ -121,22 +146,37 @@ graph TB
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `SECRET_KEY` | ✅ | JWT signing key | `random 48-char string` |
-| `FERNET_KEY` | ✅ | Encryption key for credentials | `generated by Fernet` |
-| `DATABASE_URL` | ✅ | PostgreSQL connection | `postgresql://user:pass@postgres:5432/bwsniper` |
-| `REDIS_URL` | ✅ | Redis connection | `redis://redis:6379/0` |
-| `SMTP_HOST` | ❌ | Email notification server | `smtp.gmail.com` |
-| `SMTP_PORT` | ❌ | Email port | `587` |
-| `SMTP_USER` | ❌ | Email username | `notifications@gmail.com` |
-| `SMTP_PASSWORD` | ❌ | Email password | `app-password` |
+| `SECRET_KEY` | Yes | JWT signing key | `random 48-char string` |
+| `FERNET_KEY` | Yes | Encryption key for credentials | `generated by Fernet` |
+| `DATABASE_URL` | Yes | PostgreSQL connection | `postgresql://user:pass@postgres:5432/bwsniper` |
+| `REDIS_URL` | Yes | Redis connection | `redis://redis:6379/0` |
+| `REMOTE_AGENT_POLL_INTERVAL_MS` | No | Remote agent sync interval in milliseconds | `3000` |
+| `SMTP_HOST` | No | Email notification server | `smtp.gmail.com` |
+| `SMTP_PORT` | No | Email port | `587` |
+| `SMTP_USER` | No | Email username | `notifications@gmail.com` |
+| `SMTP_PASSWORD` | No | Email password | `app-password` |
 
-See `.env.example` for full list.
+See `.env.example` for the full list.
+
+### Remote Agent Setup
+
+Remote redundancy is optional and is controlled from the existing Admin page.
+
+1. Deploy the main stack and sign in as an admin.
+2. Open Admin, create a Remote Agent, and copy the one-time API key.
+3. Set `REMOTE_AGENT_ID` and `REMOTE_AGENT_API_KEY` in the remote host's `.env`.
+4. Point `MAIN_BACKEND_URL` at the main backend URL reachable from the remote host.
+5. Start the agent with `docker compose --profile redundancy up -d remote-agent`.
+6. Assign the agent to specific users in Admin and enable redundancy for those users.
+
+The raw agent API key is only shown immediately after create or rotate. If it is lost, rotate the key in Admin and update the remote host.
 
 ---
 
 ## Development
 
 ### Local setup
+
 ```bash
 # Backend
 cd backend
@@ -152,34 +192,54 @@ npm run dev
 ```
 
 ### Running tests with timeout protection
+
 ```bash
 cd backend
 python run_tests_with_timeout.py --timeout 300
 ```
 
 ### Building images locally
+
 ```bash
 docker compose build
+```
+
+To build only the remote agent image:
+
+```bash
+docker compose build remote-agent
 ```
 
 ---
 
 ## Troubleshooting
 
-### Container won't start
+### Container will not start
+
 ```bash
 docker compose logs backend
 docker compose logs postgres
 ```
 
 ### Database connection errors
+
 Ensure PostgreSQL is healthy:
+
 ```bash
 docker compose ps postgres
 docker compose logs postgres
 ```
 
+### Remote agent is not syncing
+
+Check that the agent was created in Admin, `REMOTE_AGENT_ID` matches the created agent, `REMOTE_AGENT_API_KEY` is the latest one-time key, and `MAIN_BACKEND_URL` is reachable from the remote host.
+
+```bash
+docker compose logs -f remote-agent
+```
+
 ### Reset everything
+
 ```bash
 docker compose down -v  # Removes all volumes
 docker compose up -d    # Fresh start

@@ -36,7 +36,7 @@ from starlette.responses import Response
 
 from .api.auth import limiter
 from .db.database import init_db, SessionLocal
-from .api.router import api_router, ws_router
+from .api.router import api_router, internal_router, ws_router
 from .config import (
     CORS_ORIGINS,
     CLEANUP_INTERVAL_SEC,
@@ -230,6 +230,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(internal_router)
 app.include_router(ws_router)
 
 

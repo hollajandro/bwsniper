@@ -94,6 +94,7 @@ TOKEN_PURGE_INTERVAL_ITER = int(
 SESSION_REFRESH_INTERVAL_ITER = int(
     os.getenv("SESSION_REFRESH_INTERVAL_ITER", "1200")
 )  # ~20 hours
+REMOTE_AGENT_POLL_INTERVAL_MS = int(os.getenv("REMOTE_AGENT_POLL_INTERVAL_MS", "3000"))
 
 # ── BuyWander upstream ───────────────────────────────────────────────────────
 BW_API_BASE = os.getenv("BW_API_BASE", "https://api.buywander.com")

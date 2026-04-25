@@ -319,6 +319,8 @@ class AdminUserView(BaseModel):
     email: str
     display_name: Optional[str] = None
     is_admin: bool
+    remote_redundancy_enabled: bool = False
+    remote_agent_id: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -330,15 +332,101 @@ class AdminUserCreate(BaseModel):
     password: str = Field(min_length=8)
     display_name: Optional[str] = Field(default=None, max_length=100)
     is_admin: bool = False
+    remote_redundancy_enabled: bool = False
+    remote_agent_id: Optional[str] = None
 
 
 class AdminUserUpdate(BaseModel):
     is_admin: Optional[bool] = None
     display_name: Optional[str] = Field(default=None, max_length=100)
+    remote_redundancy_enabled: Optional[bool] = None
+    remote_agent_id: Optional[str] = None
 
 
 class AdminPasswordReset(BaseModel):
     new_password: str = Field(min_length=8)
+
+
+class RemoteAgentView(BaseModel):
+    id: str
+    name: str
+    region: Optional[str] = None
+    enabled: bool
+    last_seen_at: Optional[datetime] = None
+    last_error: Optional[str] = None
+    clock_offset_ms: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RemoteAgentCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    region: Optional[str] = Field(default=None, max_length=100)
+    enabled: bool = True
+
+
+class RemoteAgentUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    region: Optional[str] = Field(default=None, max_length=100)
+    enabled: Optional[bool] = None
+    rotate_api_key: bool = False
+
+
+class RemoteAgentProvisionResponse(RemoteAgentView):
+    api_key: Optional[str] = None
+
+
+class RemoteAgentWorkerReport(BaseModel):
+    snipe_id: str
+    status: str
+    error_msg: Optional[str] = None
+    fired_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    payload_hash: Optional[str] = None
+
+
+class RemoteAgentSyncRequest(BaseModel):
+    agent_version: str = ""
+    observed_at: Optional[datetime] = None
+    clock_offset_ms: Optional[int] = None
+    workers: list[RemoteAgentWorkerReport] = Field(default_factory=list)
+
+
+class RemoteAgentDesiredSnipe(BaseModel):
+    snipe_id: str
+    login_id: str
+    user_id: str
+    url: str
+    handle: str
+    bid_amount: float
+    snipe_seconds: int
+    customer_id: str
+    bw_email: str
+    encrypted_password: str
+    encrypted_cookies: Optional[str] = None
+    payload_hash: str
+
+
+class RemoteAgentSyncResponse(BaseModel):
+    agent_id: str
+    enabled: bool
+    poll_interval_ms: int
+    server_time: datetime
+    snipes: list[RemoteAgentDesiredSnipe] = Field(default_factory=list)
+
+
+class RemoteAgentEventCreate(BaseModel):
+    snipe_id: str
+    event_type: str = Field(default="info", max_length=32)
+    message: str = Field(min_length=1, max_length=512)
+    status: Optional[str] = Field(default=None, max_length=32)
+    error_msg: Optional[str] = Field(default=None, max_length=512)
+    fired_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    encrypted_cookies: Optional[str] = None
 
 
 # ─── WebSocket events ────────────────────────────────────────────────────────

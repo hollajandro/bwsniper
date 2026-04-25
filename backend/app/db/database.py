@@ -155,7 +155,10 @@ def init_db():
     if "sqlite" in DATABASE_URL:
         migrations = [
             "ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN remote_redundancy_enabled BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN remote_agent_id VARCHAR(36)",
             "ALTER TABLE snipes ADD COLUMN notify BOOLEAN",
+            "ALTER TABLE snipes ADD COLUMN max_bid_exceeded_notified BOOLEAN NOT NULL DEFAULT 0",
         ]
         with engine.connect() as conn:
             for sql in migrations:

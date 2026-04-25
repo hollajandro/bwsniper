@@ -18,6 +18,7 @@ from ..db.database import SessionLocal
 from ..db.models import Snipe, EventLog, HistoryRecord, SnipeStatus, BuyWanderLogin
 from ..utils.retry import with_retry as _with_retry
 from ..utils.crypto import decrypt as _decrypt, encrypt as _encrypt
+from .bid_state import auction_shows_bid_applied, extract_http_error_detail
 from .buywander_api import (
     get_auction,
     place_bid,
@@ -261,6 +262,57 @@ class AuctionWorker(threading.Thread):
         finally:
             db.close()
 
+    def _emit_snipe_fired(self, title: str, log_message: str) -> None:
+        self._update_and_broadcast(
+            fields={
+                "bid_placed": True,
+                "status": SnipeStatus.SNIPED,
+                "fired_at": datetime.now(timezone.utc),
+            },
+            log_msg=log_message,
+            log_type="bid",
+            status=SnipeStatus.SNIPED,
+            ws_extra={"bid_amount": self.bid_amount},
+        )
+        if self.ws_manager:
+            self.ws_manager.broadcast_to_user(
+                self.user_id,
+                {
+                    "type": "snipe.fired",
+                    "data": {
+                        "snipe_id": self.snipe_id,
+                        "bid_amount": self.bid_amount,
+                        "title": title,
+                    },
+                },
+            )
+
+    def _confirm_bid_submission_from_follow_up(
+        self,
+        auction_uuid: str,
+        title: str,
+        detail: str,
+    ) -> bool:
+        """
+        Re-fetch the auction after a bid error to see whether our bid still landed.
+        """
+        try:
+            auction = _with_retry(lambda: get_auction(self.bw_session, auction_uuid))
+        except Exception:
+            return False
+
+        if not auction_shows_bid_applied(auction, self.customer_id, self.bid_amount):
+            return False
+
+        self._emit_snipe_fired(
+            title,
+            (
+                f"Bid confirmed after follow-up fetch: ${self.bid_amount:.2f} "
+                f"on {title[:30]} ({detail[:80]})"
+            ),
+        )
+        return True
+
     # ── Main loop ────────────────────────────────────────────────────────────
 
     def _notify_if_bid_limit_exceeded(
@@ -498,29 +550,10 @@ class AuctionWorker(threading.Thread):
                         return
 
                     bid_placed = True
-                    self._update_and_broadcast(
-                        fields={
-                            "bid_placed": True,
-                            "status": SnipeStatus.SNIPED,
-                            "fired_at": datetime.now(timezone.utc),
-                        },
-                        log_msg=f"Bid submitted: ${self.bid_amount:.2f} on {title[:30]}",
-                        log_type="bid",
-                        status=SnipeStatus.SNIPED,
-                        ws_extra={"bid_amount": self.bid_amount},
+                    self._emit_snipe_fired(
+                        title,
+                        f"Bid submitted: ${self.bid_amount:.2f} on {title[:30]}",
                     )
-                    if self.ws_manager:
-                        self.ws_manager.broadcast_to_user(
-                            self.user_id,
-                            {
-                                "type": "snipe.fired",
-                                "data": {
-                                    "snipe_id": self.snipe_id,
-                                    "bid_amount": self.bid_amount,
-                                    "title": title,
-                                },
-                            },
-                        )
                     self._stop_event.wait(2)
 
                 except _requests.HTTPError as ex:
@@ -549,40 +582,33 @@ class AuctionWorker(threading.Thread):
                                     )
                                     return
                                 bid_placed = True
-                                self._update_and_broadcast(
-                                    fields={
-                                        "bid_placed": True,
-                                        "status": SnipeStatus.SNIPED,
-                                        "fired_at": datetime.now(timezone.utc),
-                                    },
-                                    log_msg=f"Bid submitted (after re-auth): ${self.bid_amount:.2f} on {title[:30]}",
-                                    log_type="bid",
-                                    status=SnipeStatus.SNIPED,
-                                    ws_extra={"bid_amount": self.bid_amount},
+                                self._emit_snipe_fired(
+                                    title,
+                                    (
+                                        "Bid submitted (after re-auth): "
+                                        f"${self.bid_amount:.2f} on {title[:30]}"
+                                    ),
                                 )
-                                if self.ws_manager:
-                                    self.ws_manager.broadcast_to_user(
-                                        self.user_id,
-                                        {
-                                            "type": "snipe.fired",
-                                            "data": {
-                                                "snipe_id": self.snipe_id,
-                                                "bid_amount": self.bid_amount,
-                                                "title": title,
-                                            },
-                                        },
-                                    )
                                 self._stop_event.wait(2)
                             except Exception as retry_ex:
+                                detail = extract_http_error_detail(retry_ex)
+                                if self._confirm_bid_submission_from_follow_up(
+                                    auction_uuid,
+                                    title,
+                                    detail,
+                                ):
+                                    bid_placed = True
+                                    self._stop_event.wait(2)
+                                    continue
                                 self._update_and_broadcast(
                                     fields={
                                         "status": SnipeStatus.ERROR,
-                                        "error_msg": str(retry_ex)[:200],
+                                        "error_msg": detail[:200],
                                     },
-                                    log_msg=f"Bid retry failed: {retry_ex}",
+                                    log_msg=f"Bid retry failed: {detail}",
                                     log_type="error",
                                     status=SnipeStatus.ERROR,
-                                    ws_extra={"error_msg": str(retry_ex)[:200]},
+                                    ws_extra={"error_msg": detail[:200]},
                                 )
                                 return
                         else:
@@ -598,11 +624,15 @@ class AuctionWorker(threading.Thread):
                             )
                             return
                     else:
-                        detail = ""
-                        try:
-                            detail = ex.response.json().get("detail", ex.response.text)
-                        except Exception:
-                            detail = str(ex)
+                        detail = extract_http_error_detail(ex)
+                        if self._confirm_bid_submission_from_follow_up(
+                            auction_uuid,
+                            title,
+                            detail,
+                        ):
+                            bid_placed = True
+                            self._stop_event.wait(2)
+                            continue
                         self._update_and_broadcast(
                             fields={
                                 "status": SnipeStatus.ERROR,

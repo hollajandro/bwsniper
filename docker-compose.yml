@@ -136,6 +136,30 @@ services:
     networks:
       - bwsniper-network
 
+  # Optional redundant remote execution agent. Enable with:
+  #   docker compose --profile redundancy up -d remote-agent
+  remote-agent:
+    profiles: ["redundancy"]
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-bwsniper}-agent:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    container_name: bwsniper-remote-agent
+    restart: unless-stopped
+    environment:
+      MAIN_BACKEND_URL: "${MAIN_BACKEND_URL:-http://backend:8000}"
+      AGENT_ID: "${REMOTE_AGENT_ID:-}"
+      AGENT_API_KEY: "${REMOTE_AGENT_API_KEY:-}"
+      SECRET_KEY: "${SECRET_KEY}"
+      FERNET_KEY: "${FERNET_KEY:-}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      SYNC_INTERVAL_MS: "${REMOTE_AGENT_POLL_INTERVAL_MS:-3000}"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - bwsniper-network
+
   # ── Migration Service (one-time use) ──────────────────────────────────────────
   # Run with: docker compose run --rm db-migration
   # Mount your old SQLite DB to /mnt/sqlite/app.db before running

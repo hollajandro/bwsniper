@@ -69,3 +69,24 @@ code {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+@media (max-width: 640px) {
+  [role="dialog"] button[aria-label="Close"] {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    margin-top: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(31, 41, 55, 0.6);
+    color: #d1d5db;
+    font-size: 1.25rem;
+  }
+
+  [role="dialog"] button[aria-label="Close"]:active {
+    background-color: #1f2937;
+    color: #ffffff;
+  }
+}

@@ -162,7 +162,9 @@ def _status_value(status: str | SnipeStatus) -> str:
 
 
 def _is_terminal_status(status: str | SnipeStatus) -> bool:
-    return _status_value(status) in {_status_value(item) for item in SnipeStatus.terminal()}
+    return _status_value(status) in {
+        _status_value(item) for item in SnipeStatus.terminal()
+    }
 
 
 def _broadcast_remote_update(
@@ -238,7 +240,10 @@ def _promote_remote_status(
         updates["status"] = status_value
         updates["ended_at"] = ended_at or _utcnow()
         updates["error_msg"] = None
-        if status_value in {_status_value(SnipeStatus.WON), _status_value(SnipeStatus.LOST)}:
+        if status_value in {
+            _status_value(SnipeStatus.WON),
+            _status_value(SnipeStatus.LOST),
+        }:
             updates["bid_placed"] = True
             if fired_at is not None:
                 updates["fired_at"] = fired_at
@@ -352,7 +357,9 @@ def record_remote_agent_event(
             extra={
                 key: value
                 for key, value in {
-                    "bid_amount": snipe.bid_amount if updates.get("bid_placed") else None,
+                    "bid_amount": snipe.bid_amount
+                    if updates.get("bid_placed")
+                    else None,
                     "error_msg": updates.get("error_msg"),
                 }.items()
                 if value is not None

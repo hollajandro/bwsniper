@@ -71,7 +71,7 @@ export default function Navbar() {
         </div>
 
         <button
-          className="md:hidden h-11 w-11 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 active:bg-gray-800 transition-colors flex items-center justify-center"
+          className="md:hidden h-11 w-11 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 active:bg-gray-800 transition-colors flex items-center justify-center text-2xl"
           onClick={() => setMenuOpen(m => !m)}
           aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
           aria-expanded={menuOpen}

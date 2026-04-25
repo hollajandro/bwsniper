@@ -71,12 +71,12 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-0 sm:items-center sm:p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="card w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div role="dialog" aria-modal="true" className="card rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-gray-800 gap-3">
+        <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-800 gap-3">
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-white leading-snug">
               {item.title || record.title || '(Untitled)'}
@@ -92,7 +92,7 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
           {loading && <p className="text-gray-500 text-sm animate-pulse">Loading details…</p>}
           {error   && <p className="text-red-400 text-sm">{error}</p>}
 

@@ -13,7 +13,10 @@ from ..db.schemas import (
 )
 from ..dependencies import get_authenticated_remote_agent
 from ..db.models import RemoteAgent
-from ..services.remote_agent_service import build_sync_response, record_remote_agent_event
+from ..services.remote_agent_service import (
+    build_sync_response,
+    record_remote_agent_event,
+)
 
 router = APIRouter(prefix="/internal/remote-agents", tags=["internal-remote-agents"])
 
@@ -42,4 +45,6 @@ def post_remote_agent_event(
     try:
         record_remote_agent_event(db, agent, body)
     except ValueError as ex:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ex)) from ex
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(ex)
+        ) from ex

@@ -336,11 +336,40 @@ def fetch_cart_and_visits(
 ) -> dict:
     r = session.post(
         f"{BW_API_BASE}/api/site/customers/paidItemsAndVisit",
-        json={"storeLocationId": store_location_id, "customerId": customer_id},
+        json={
+            "storeLocationId": store_location_id,
+            "customerId": customer_id,
+            "showCancelled": False,
+            "showCompleted": True,
+            "showRescheduled": False,
+        },
         timeout=15,
     )
     r.raise_for_status()
-    return r.json()
+    data = r.json()
+    return _filter_paid_items_awaiting_pickup(data)
+
+
+def _filter_paid_items_awaiting_pickup(data: dict) -> dict:
+    """Match BuyWander's current appointments page paid-item filtering."""
+    visits = [
+        visit
+        for visit in data.get("visits") or data.get("Visits") or []
+        if visit.get("status") != "ReScheduled"
+    ]
+    visit_ids = {str(visit.get("id")) for visit in visits if visit.get("id")}
+    paid_items = data.get("paidItems") or data.get("PaidItems") or []
+    filtered_paid_items = [
+        item
+        for item in paid_items
+        if not item.get("visitId") or str(item.get("visitId")) not in visit_ids
+    ]
+
+    return {
+        **data,
+        "visits": visits,
+        "paidItems": filtered_paid_items,
+    }
 
 
 def fetch_reserved_auctions(session: _requests.Session, customer_id: str) -> list:

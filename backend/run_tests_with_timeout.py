@@ -21,6 +21,10 @@ TESTDEPS_DIR = BACKEND_DIR / ".testdeps"
 VENV_DIR = BACKEND_DIR / ".venv"
 
 
+def _venv_python() -> Path:
+    return VENV_DIR / "Scripts" / "python.exe"
+
+
 def _tool_dirs() -> list[Path]:
     candidates = [
         VENV_DIR / "Scripts",
@@ -35,7 +39,7 @@ def _build_env() -> dict[str, str]:
     env = os.environ.copy()
 
     pythonpath_parts = []
-    if TESTDEPS_DIR.exists():
+    if TESTDEPS_DIR.exists() and not _venv_python().exists():
         pythonpath_parts.append(str(TESTDEPS_DIR))
     if env.get("PYTHONPATH"):
         pythonpath_parts.append(env["PYTHONPATH"])
@@ -51,6 +55,9 @@ def _build_env() -> dict[str, str]:
 
 
 def _python_cmd() -> list[str]:
+    venv_python = _venv_python()
+    if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
+        return [str(venv_python)]
     return [sys.executable]
 
 

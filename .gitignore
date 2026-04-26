@@ -72,6 +72,7 @@ dmypy.json
 
 # Pytest
 .pytest_cache/
+backend/.pytest-cache/
 
 # OS
 .DS_Store

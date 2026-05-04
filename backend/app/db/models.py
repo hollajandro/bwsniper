@@ -364,14 +364,20 @@ class WatchlistItem(Base):
         String(36), ForeignKey("buywander_logins.id"), nullable=True
     )
     handle: Mapped[str] = mapped_column(String(255), nullable=False)
+    auction_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
 
-    __table_args__ = (Index("ix_watchlist_user", "user_id"),)
+    __table_args__ = (
+        Index("ix_watchlist_user", "user_id"),
+        Index("ix_watchlist_user_handle", "user_id", "handle"),
+        Index("ix_watchlist_user_auction", "user_id", "auction_id"),
+    )
 
 
 class RefreshToken(Base):

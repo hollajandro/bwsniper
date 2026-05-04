@@ -1,5 +1,5 @@
 # ── Stage 1: build the React/Vite app ───────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:20.19.5-alpine3.22 AS build
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # ── Stage 2: serve with nginx ────────────────────────────────────────────────
-FROM alpine:3.22
+FROM alpine:3.22.4
 
 # Install the distro nginx package instead of the official nginx image, which
 # includes extra modules that pull in libxpm.

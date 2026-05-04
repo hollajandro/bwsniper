@@ -1,31 +1,32 @@
-fastapi~=0.115.0
-uvicorn[standard]~=0.34.0
-sqlalchemy~=2.0.40
-pydantic[email]~=2.11.0
-bcrypt~=4.3.0
-PyJWT~=2.10.0
-cryptography~=45.0.0
-httpx~=0.28.0
-aiosqlite~=0.21.0
-python-multipart~=0.0.20
-slowapi~=0.1.9
+fastapi==0.115.0
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.40
+pydantic[email]==2.11.0
+bcrypt==4.3.0
+PyJWT==2.10.0
+cryptography==45.0.7
+httpx==0.28.0
+requests==2.33.1
+aiosqlite==0.21.0
+python-multipart==0.0.20
+slowapi==0.1.9
 
 # PostgreSQL
-psycopg2-binary~=2.9.0
+psycopg2-binary==2.9.12
 
 # Migrations
-alembic~=1.16.0
+alembic==1.16.0
 
 # Observability
-prometheus-client~=0.21.0
-opentelemetry-api~=1.35.0
-opentelemetry-sdk~=1.35.0
-opentelemetry-instrumentation-fastapi~=0.56b0
-opentelemetry-exporter-otlp~=1.35.0
-opentelemetry-instrumentation-sqlalchemy~=0.56b0
+prometheus-client==0.21.0
+opentelemetry-api==1.35.0
+opentelemetry-sdk==1.35.0
+opentelemetry-instrumentation-fastapi==0.56b0
+opentelemetry-exporter-otlp==1.35.0
+opentelemetry-instrumentation-sqlalchemy==0.56b0
 
 # Utilities
-python-dotenv~=1.2.2
-textual~=3.2.0
-rich~=14.0.0
-types-requests~=2.32.4
+python-dotenv==1.2.2
+textual==3.2.0
+rich==14.0.0
+types-requests==2.33.0.20260503

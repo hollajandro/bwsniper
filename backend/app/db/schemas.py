@@ -224,6 +224,8 @@ class WatchlistCreate(BaseModel):
     url: str
     title: Optional[str] = None
     notes: Optional[str] = None
+    auction_id: Optional[str] = None
+    snapshot: Optional[dict] = None
 
     @field_validator("url")
     @classmethod
@@ -236,9 +238,11 @@ class WatchlistResponse(BaseModel):
     user_id: str
     login_id: Optional[str] = None
     handle: Optional[str] = None
+    auction_id: Optional[str] = None
     url: Optional[str] = None
     title: Optional[str] = None
     notes: Optional[str] = None
+    snapshot: Optional[dict] = None
     created_at: datetime
 
     class Config:

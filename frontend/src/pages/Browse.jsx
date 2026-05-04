@@ -150,6 +150,53 @@ function auctionUrl(auction) {
     || (auction.id ? `https://www.buywander.com/auction/${auction.id}` : '')
 }
 
+function createWatchSnapshot(auction) {
+  const item = auction.item || {}
+  const location = auction.storeLocation || {}
+  return {
+    id: auction.id,
+    handle: auction.handle,
+    endDate: auction.endDate,
+    url: auctionUrl(auction),
+    bidCount: auction.bidCount,
+    numberOfBids: auction.numberOfBids,
+    winningBid: auction.winningBid ? { amount: auction.winningBid.amount } : null,
+    storeLocation: location ? {
+      id: location.id,
+      name: location.name,
+      city: location.city,
+      state: location.state,
+    } : null,
+    item: {
+      title: item.title,
+      price: item.price,
+      condition: item.condition,
+      brand: item.brand,
+      manufacturer: item.manufacturer,
+      modelNumber: item.modelNumber,
+      model: item.model,
+      imageUrl: getItemImage(item),
+      handle: item.handle,
+    },
+  }
+}
+
+function watchlistToAuction(entry) {
+  const snapshot = entry.snapshot || {}
+  const item = snapshot.item || {}
+  return {
+    ...snapshot,
+    id: snapshot.id || entry.auction_id || entry.handle,
+    handle: snapshot.handle || entry.handle,
+    url: snapshot.url || entry.url,
+    item: {
+      ...item,
+      title: item.title || entry.title || '(Untitled)',
+    },
+    isWatchedCache: true,
+  }
+}
+
 /**
  * Parse quoted phrases from a search string.
  * e.g. '"apple watch" series 3' →
@@ -614,12 +661,13 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
           )}
           {url && watchlist && onWatchToggle && (() => {
             const handle = (detail || auction).handle || ''
-            const isWatched = watchlist.has(handle)
+            const auctionId = (detail || auction).id || ''
+            const isWatched = watchlist.has(handle) || watchlist.has(auctionId)
             return (
               <button
                 onClick={() => {
                   if (!isWatched) {
-                    onWatchToggle(handle, url, item.title || '')
+                    onWatchToggle(detail || auction)
                   }
                 }}
                 className={`px-4 py-2 rounded text-sm transition-colors ${isWatched ? 'bg-gray-700 text-bw-yellow' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
@@ -1036,16 +1084,38 @@ export default function Browse() {
 
   // Watchlist
   const [watchlist, setWatchlist] = useState(new Set())
+  const [watchlistItems, setWatchlistItems] = useState([])
 
   // Load watchlist on mount
   useEffect(() => {
     get('/watchlist').then(async r => {
       if (r.ok) {
         const data = await r.json()
-        setWatchlist(new Set(data.map(w => w.handle)))
+        const keys = new Set()
+        for (const w of data) {
+          if (w.handle) keys.add(w.handle)
+          if (w.auction_id) keys.add(w.auction_id)
+          if (w.snapshot?.id) keys.add(w.snapshot.id)
+        }
+        setWatchlist(keys)
+        setWatchlistItems(data)
       }
     })
   }, [get])
+
+  const watchedCacheItems = useMemo(() => {
+    const seen = new Set()
+    return watchlistItems
+      .map(watchlistToAuction)
+      .filter(a => {
+        const key = a.id || a.handle
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+  }, [watchlistItems])
+
+  const watchedMode = quickFilters.includes('Watched')
 
   // Snipes
   const [snipes, setSnipes] = useState([])
@@ -1125,6 +1195,8 @@ export default function Browse() {
     // Prefer cached data (instant); fall back to a stub so the modal fetches via API
     const fromLive = liveItems.find(a => a.id === openId)
     if (fromLive) { setDetailTarget(fromLive); setSearchParams({}, { replace: true }); return }
+    const fromWatched = watchedCacheItems.find(a => a.id === openId || a.handle === openId)
+    if (fromWatched) { setDetailTarget(fromWatched); setSearchParams({}, { replace: true }); return }
     const fromEnded = endedCache.find(e => e.auction?.id === openId)
     if (fromEnded) { setDetailTarget(fromEnded.auction); setSearchParams({}, { replace: true }); return }
 
@@ -1239,7 +1311,7 @@ export default function Browse() {
 
   // Apply quick filters + exact phrase filter client-side
   const filteredItems = useMemo(() => {
-    let result = items
+    let result = watchedMode ? watchedCacheItems : items
     // Enforce quoted phrases: title must contain each phrase as a substring
     if (exactPhrases.length) {
       result = result.filter(a => {
@@ -1247,14 +1319,29 @@ export default function Browse() {
         return exactPhrases.every(p => text.includes(p))
       })
     }
+    if (conditions.length) {
+      result = result.filter(a => conditions.includes(a.item?.condition))
+    }
+    if (selectedLocations.length) {
+      result = result.filter(a => selectedLocations.includes(a.storeLocation?.id))
+    }
+    if (minPrice) {
+      const min = parseFloat(minPrice)
+      result = result.filter(a => (a.item?.price ?? 0) >= min)
+    }
+    if (maxPrice) {
+      const max = parseFloat(maxPrice)
+      result = result.filter(a => (a.item?.price ?? 0) <= max)
+    }
     if (!quickFilters.length) return result
     return result.filter(a =>
       quickFilters.every(f => {
+        if (f === 'Watched' && watchedMode) return true
         const fn = QUICK_FILTER_FNS[f]
         return fn ? fn(a, snipesMap, watchlist) : true
       })
     )
-  }, [items, quickFilters, snipesMap, watchlist, exactPhrases])
+  }, [items, watchedMode, watchedCacheItems, quickFilters, snipesMap, watchlist, exactPhrases, conditions, selectedLocations, minPrice, maxPrice])
 
   // ── Maintain stable live list with scroll preservation on item removal ────
   useEffect(() => {
@@ -1305,6 +1392,11 @@ export default function Browse() {
   const fetchAuctions = useCallback(async () => {
     if (!loginId) return
     pageRef.current = 1
+    if (watchedMode) {
+      setLoading(false)
+      setHasMore(false)
+      return
+    }
     setLoading(true)
     setHasMore(false)
     try {
@@ -1317,12 +1409,13 @@ export default function Browse() {
     } finally {
       setLoading(false)
     }
-  }, [loginId, buildBody, post])
+  }, [loginId, watchedMode, buildBody, post])
 
   useEffect(() => { fetchAuctions() }, [fetchAuctions])
 
   // ── Load next page, append items (triggered by scroll sentinel) ───────────
   const loadMore = useCallback(async () => {
+    if (watchedMode) return
     if (!hasMore || loading || loadingMore) return
     const nextPage = pageRef.current + 1
     setLoadingMore(true)
@@ -1337,7 +1430,7 @@ export default function Browse() {
     } finally {
       setLoadingMore(false)
     }
-  }, [hasMore, loading, loadingMore, buildBody, post])
+  }, [watchedMode, hasMore, loading, loadingMore, buildBody, post])
 
   // ── IntersectionObserver on sentinel div ──────────────────────────────────
   const loadMoreRef = useRef(loadMore)
@@ -1370,6 +1463,7 @@ export default function Browse() {
   }, [quickFilters, conditions, sortBy, search, selectedLocations])
 
   useEffect(() => {
+    if (watchedMode) return
     if (!hasMore || loading || loadingMore) return
     if (autoLoadCountRef.current >= 10) {
       setCapReached(true)
@@ -1384,7 +1478,7 @@ export default function Browse() {
       autoLoadCountRef.current += 1
       loadMoreRef.current()
     }
-  }, [filteredItems.length, hasMore, loading, loadingMore])
+  }, [watchedMode, filteredItems.length, hasMore, loading, loadingMore])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function toggleCondition(cond) {
@@ -1425,12 +1519,37 @@ export default function Browse() {
     reloadSnipes()
   }
 
-  const handleWatchToggle = useCallback(async (handle, url, title) => {
-    const res = await post('/watchlist', { url, title })
+  const handleWatchToggle = useCallback(async (auction) => {
+    const snapshot = createWatchSnapshot(auction)
+    const handle = snapshot.handle || auction.handle
+    const auctionId = snapshot.id || auction.id
+    const url = snapshot.url || auctionUrl(auction)
+    const title = snapshot.item?.title || auction.item?.title || ''
+    const res = await post('/watchlist', {
+      login_id: loginId || null,
+      url,
+      title,
+      auction_id: auctionId || null,
+      snapshot,
+    })
     if (res.ok) {
-      setWatchlist(prev => new Set([...prev, handle]))
+      const saved = await res.json()
+      setWatchlist(prev => {
+        const next = new Set(prev)
+        if (handle) next.add(handle)
+        if (auctionId) next.add(auctionId)
+        if (saved.handle) next.add(saved.handle)
+        if (saved.auction_id) next.add(saved.auction_id)
+        if (saved.snapshot?.id) next.add(saved.snapshot.id)
+        return next
+      })
+      setWatchlistItems(prev => {
+        const key = saved.id
+        const filtered = prev.filter(w => w.id !== key && w.handle !== saved.handle && w.auction_id !== saved.auction_id)
+        return [saved, ...filtered]
+      })
     }
-  }, [post])
+  }, [loginId, post])
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (

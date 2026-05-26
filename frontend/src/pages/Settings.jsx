@@ -10,6 +10,7 @@ function ApiKeyInput({ value, onChange }) {
     <div className="flex gap-2">
       <input
         type={show ? 'text' : 'password'}
+        aria-label="Serper API key"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="sk-…"
@@ -205,8 +206,8 @@ export default function Settings() {
         {msg && <span className="text-sm text-gray-300">{msg}</span>}
         <span className="ml-auto text-xs">
           {saveStatus === 'saving' && <span className="text-gray-400">Saving…</span>}
-          {saveStatus === 'saved'  && <span className="text-bw-green">Saved</span>}
-          {saveStatus === 'error'  && <span className="text-bw-red">Save failed</span>}
+          {saveStatus === 'saved'  && <span role="status" aria-live="polite" className="text-bw-green">Saved</span>}
+          {saveStatus === 'error'  && <span role="alert" className="text-bw-red">Save failed</span>}
         </span>
       </div>
 
@@ -217,7 +218,7 @@ export default function Settings() {
           {logins.map(l => (
             <div key={l.id} className="flex items-center justify-between bg-gray-800 rounded px-4 py-2">
               <div className="text-sm">
-                <span className={l.is_active ? 'text-bw-green' : 'text-gray-500'}>●</span>
+                <span aria-label={l.is_active ? 'Active account' : 'Inactive account'} className={l.is_active ? 'text-bw-green' : 'text-gray-500'}>●</span>
                 {' '}{l.display_name || l.bw_email}
                 <span className="text-gray-500 ml-2">({l.bw_email})</span>
               </div>
@@ -226,9 +227,9 @@ export default function Settings() {
           ))}
         </div>
         <form onSubmit={addBwLogin} className="flex gap-2 items-end">
-          <input type="email" placeholder="BuyWander email" value={bwEmail} onChange={e => setBwEmail(e.target.value)} required
+          <input type="email" aria-label="BuyWander email" placeholder="BuyWander email" value={bwEmail} onChange={e => setBwEmail(e.target.value)} required
             disabled={addingLogin} className="field flex-1" />
-          <input type="password" placeholder="BuyWander password" value={bwPass} onChange={e => setBwPass(e.target.value)} required
+          <input type="password" aria-label="BuyWander password" placeholder="BuyWander password" value={bwPass} onChange={e => setBwPass(e.target.value)} required
             disabled={addingLogin} className="field flex-1" />
           <button type="submit" disabled={addingLogin}
             className="btn btn-primary whitespace-nowrap">
@@ -242,15 +243,16 @@ export default function Settings() {
         <h2 className="text-lg font-semibold mb-3">Defaults</h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Default snipe seconds</label>
-            <input type="number" min={1} max={120}
+            <label htmlFor="default-snipe-seconds" className="block text-sm text-gray-400 mb-1">Default snipe seconds</label>
+            <input id="default-snipe-seconds" type="number" min={1} max={120}
               value={settings.defaults?.snipe_seconds || 5}
               onChange={e => updateSetting('defaults', 'snipe_seconds', parseInt(e.target.value) || 5)}
               className="field w-32" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Default browse location</label>
+            <label htmlFor="default-browse-location" className="block text-sm text-gray-400 mb-1">Default browse location</label>
             <select
+              id="default-browse-location"
               value={settings.defaults?.default_location_id || ''}
               onChange={e => updateSetting('defaults', 'default_location_id', e.target.value || null)}
               className="field w-auto"
@@ -269,7 +271,7 @@ export default function Settings() {
         <h2 className="text-lg font-semibold mb-3">Integrations</h2>
         <div className="bg-gray-800 rounded p-4">
           <div className="flex items-start justify-between mb-1">
-            <label className="text-sm font-medium">Serper.dev API Key</label>
+            <span className="text-sm font-medium">Serper.dev API Key</span>
             <a href="https://serper.dev" target="_blank" rel="noreferrer"
               className="text-xs text-bw-blue hover:underline">
               Get free key ↗
@@ -291,8 +293,8 @@ export default function Settings() {
 
         {/* Remind before */}
         <div className="mb-4">
-          <label className="block text-sm text-gray-400 mb-1">Remind before auction end (seconds)</label>
-          <input type="number" min={0}
+          <label htmlFor="remind-before-seconds" className="block text-sm text-gray-400 mb-1">Remind before auction end (seconds)</label>
+          <input id="remind-before-seconds" type="number" min={0}
             value={notif.remind_before_seconds ?? 300}
             onChange={e => updateNotif('remind_before_seconds', parseInt(e.target.value) || 0)}
             className="field w-32" />
@@ -324,6 +326,7 @@ export default function Settings() {
           <div className="flex gap-2 mb-3">
             <input
               type="text"
+              aria-label="New keyword watch"
               placeholder="e.g. Milwaukee, iPhone 15…"
               value={newKeyword}
               onChange={e => setNewKeyword(e.target.value)}
@@ -346,6 +349,7 @@ export default function Settings() {
                   )}
                   {locations.length > 0 && (
                     <select
+                      aria-label={`Restrict keyword ${kw} to locations`}
                       multiple
                       value={kwLocs}
                       onChange={e => {
@@ -415,12 +419,13 @@ export default function Settings() {
                         <label className="text-xs text-gray-400 capitalize">{k.replace(/_/g, ' ')}</label>
                         {typeof v === 'boolean' ? (
                           <div className="flex items-center gap-2 mt-1">
-                            <input type="checkbox" checked={v}
+                          <input type="checkbox" aria-label={k.replace(/_/g, ' ')} checked={v}
                               onChange={e => updateNotifChannel(ch, k, e.target.checked)} />
                             <span className="text-xs text-gray-400">Yes</span>
                           </div>
                         ) : (
                           <input
+                            aria-label={k.replace(/_/g, ' ')}
                             type={k.includes('password') || k.includes('token') || k.includes('key') ? 'password' : 'text'}
                             value={v ?? ''}
                             onChange={e => updateNotifChannel(ch, k, e.target.value)}

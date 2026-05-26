@@ -42,8 +42,11 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <div className="h-screen flex flex-col bg-gray-950 text-white overflow-hidden">
+              <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-bw-blue focus:text-white focus:px-3 focus:py-2 focus:rounded">
+                Skip to main content
+              </a>
               <Navbar />
-              <main className="flex-1 overflow-hidden">
+              <main id="main-content" tabIndex={-1} className="flex-1 overflow-hidden">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/browse" element={<Browse />} />

@@ -411,7 +411,7 @@ export default function Cart() {
       </div>
 
       {msg && (
-        <div className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-sm">{msg}</div>
+        <div role="status" aria-live="polite" className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-sm">{msg}</div>
       )}
       {showRepairPrompt && activeLogin && (
         <form
@@ -467,7 +467,7 @@ export default function Cart() {
         </form>
       )}
       {payMsg && (
-        <div className={`rounded px-4 py-2 text-sm font-medium ${payMsg.startsWith('✓') ? 'bg-bw-green/10 border border-bw-green/30 text-bw-green' : 'bg-bw-red/10 border border-bw-red/30 text-bw-red'}`}>
+        <div role={payMsg.startsWith('✓') ? 'status' : 'alert'} aria-live="polite" className={`rounded px-4 py-2 text-sm font-medium ${payMsg.startsWith('✓') ? 'bg-bw-green/10 border border-bw-green/30 text-bw-green' : 'bg-bw-red/10 border border-bw-red/30 text-bw-red'}`}>
           {payMsg}
         </div>
       )}

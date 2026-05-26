@@ -83,7 +83,7 @@ export default function Login() {
               />
             </div>
             {error && (
-              <p className="text-bw-red text-xs bg-bw-red/10 border border-bw-red/20 rounded-lg px-3 py-2">
+              <p role="alert" className="text-bw-red text-xs bg-bw-red/10 border border-bw-red/20 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}

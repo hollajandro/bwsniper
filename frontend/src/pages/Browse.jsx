@@ -17,6 +17,7 @@ import { useApi } from '../hooks/useApi'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
 import { getAllImgs } from '../utils/images'
+import { DialogPanel, activateOnEnterOrSpace } from '../components/a11y'
 
 const LEGACY_SORTS = [
   { value: 'EndingSoonest',       label: 'Ending Soonest' },
@@ -135,6 +136,65 @@ function getItemImage(item) {
     || (Array.isArray(item.images) && item.images.length && (item.images[0]?.url || item.images[0]))
     || (Array.isArray(item.photos) && item.photos.length && (item.photos[0]?.url || item.photos[0]))
     || null
+}
+
+function textValue(value) {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) return value.map(textValue).filter(Boolean).join('\n')
+  if (value && typeof value === 'object') {
+    return textValue(value.text)
+      || textValue(value.note)
+      || textValue(value.notes)
+      || textValue(value.body)
+      || textValue(value.content)
+      || textValue(value.description)
+      || textValue(value.value)
+  }
+  return ''
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = textValue(value)
+    if (text) return text
+  }
+  return ''
+}
+
+function sellerNotesFor(detail, auction, item) {
+  const detailAuction = detail?.auction || detail?.data || {}
+  const candidates = [
+    item,
+    detail?.item,
+    detailAuction?.item,
+    detail?.product,
+    detailAuction?.product,
+    detail,
+    detailAuction,
+    auction?.item,
+    auction,
+  ]
+  const fields = [
+    'sellerNotes',
+    'sellerNote',
+    'seller_notes',
+    'auctionNotes',
+    'auctionNote',
+    'itemNotes',
+    'itemNote',
+    'conditionNotes',
+    'conditionNote',
+    'inspectionNotes',
+    'inspectionNote',
+    'notes',
+    'note',
+    'comments',
+    'comment',
+  ]
+
+  return firstText(...candidates.flatMap(source =>
+    source ? fields.map(field => source[field]) : []
+  ))
 }
 
 function fmtSecs(s) {
@@ -284,7 +344,7 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
       .catch(() => setPriceData({ error: 'failed' }))
   }, [auction.id, get, priceCache])
 
-  const item     = (detail?.item) || auction.item || {}
+  const item     = detail?.item || detail?.auction?.item || detail?.data?.item || auction.item || {}
 
   useEffect(() => {
     const handler = e => {
@@ -312,10 +372,7 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
   const url      = auctionUrl(detail || auction)
 
   const description = item.description || item.longDescription || item.details || ''
-  const notes = item.notes || item.sellerNotes || item.itemNotes || item.note || item.sellerNote
-    || (detail?.notes) || (detail?.sellerNotes) || (detail?.auctionNotes)
-    || (detail?.note) || (detail?.sellerNote) || (detail?.auctionNote)
-    || (auction.notes) || (auction.sellerNotes) || (auction.auctionNotes) || ''
+  const notes = sellerNotesFor(detail, auction, item)
 
   const bids = detail?.computedBidHistory || detail?.bidHistory || detail?.bids || []
   const sortedBids = [...bids].sort((a, b) => (b.amount || 0) - (a.amount || 0))
@@ -334,12 +391,12 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
       className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-0 sm:items-center sm:p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div role="dialog" aria-modal="true" className="bg-gray-900 border border-gray-700 rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col shadow-2xl">
+      <DialogPanel labelledBy="auction-detail-title" onClose={onClose} className="bg-gray-900 border border-gray-700 rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
         <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-800 gap-3">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-white leading-snug">
+            <h2 id="auction-detail-title" className="text-base font-semibold text-white leading-snug">
               {item.title || auction.item?.title || '(Untitled)'}
             </h2>
             {(item.brand || item.manufacturer) && (
@@ -362,10 +419,11 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
             const src = imgs[selectedImg] ?? imgs[0]
             return (
               <div>
-                <div
-                  className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[280px]"
+                <button
+                  type="button"
+                  className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[280px] w-full"
                   onClick={() => setLightboxOpen(true)}
-                  title="Click to enlarge"
+                  aria-label={`Enlarge image of ${item.title || 'auction item'}`}
                 >
                   <img
                     key={src}
@@ -374,13 +432,15 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
                     className="max-w-full max-h-full object-contain"
                     onError={e => { e.currentTarget.style.opacity = '0.2' }}
                   />
-                </div>
+                </button>
                 {imgs.length > 1 && (
                   <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1">
                     {imgs.map((url, idx) => (
                       <button
                         key={idx}
                         onClick={() => setSelectedImg(idx)}
+                        aria-label={`Show image ${idx + 1} of ${imgs.length}`}
+                        aria-pressed={selectedImg === idx}
                         className={`shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-colors bg-gray-800 ${
                           selectedImg === idx ? 'border-bw-blue' : 'border-transparent hover:border-gray-600'
                         }`}
@@ -529,13 +589,13 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
                 }} className="space-y-2">
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-400 mb-1">Max Bid ($)</label>
-                      <input type="number" min="0.01" step="0.01" value={editBid} onChange={e => setEditBid(e.target.value)} required
+                      <label htmlFor="edit-existing-snipe-bid" className="block text-xs text-gray-400 mb-1">Max Bid ($)</label>
+                      <input id="edit-existing-snipe-bid" type="number" min="0.01" step="0.01" value={editBid} onChange={e => setEditBid(e.target.value)} required
                         className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-bw-blue" />
                     </div>
                     <div className="w-24">
-                      <label className="block text-xs text-gray-400 mb-1">Seconds</label>
-                      <input type="number" min="1" max="120" value={editSec} onChange={e => setEditSec(e.target.value)} required
+                      <label htmlFor="edit-existing-snipe-seconds" className="block text-xs text-gray-400 mb-1">Seconds</label>
+                      <input id="edit-existing-snipe-seconds" type="number" min="1" max="120" value={editSec} onChange={e => setEditSec(e.target.value)} required
                         className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-bw-blue" />
                     </div>
                   </div>
@@ -693,7 +753,7 @@ function AuctionDetailModal({ auction, loginId, logins, defaultSnipeSec, priceCa
             )
           })()}
         </div>
-      </div>
+      </DialogPanel>
 
       {showSnipe && (
         <SnipeModal
@@ -807,9 +867,9 @@ function SnipeModal({ auction, logins, defaultSnipeSec, onClose, onSubmit }) {
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4"
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
+      <DialogPanel labelledBy="snipe-modal-title" onClose={onClose} className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
         <div className="p-5 border-b border-gray-800">
-          <h2 className="text-base font-semibold text-white truncate">
+          <h2 id="snipe-modal-title" className="text-base font-semibold text-white truncate">
             Snipe: {item.title || auction.id}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -819,8 +879,9 @@ function SnipeModal({ auction, logins, defaultSnipeSec, onClose, onSubmit }) {
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">BuyWander Account</label>
+            <label htmlFor="snipe-account" className="block text-xs text-gray-400 mb-1">BuyWander Account</label>
             <select
+              id="snipe-account"
               value={loginId}
               onChange={e => setLoginId(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
@@ -831,8 +892,9 @@ function SnipeModal({ auction, logins, defaultSnipeSec, onClose, onSubmit }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Max Bid ($)</label>
+            <label htmlFor="snipe-max-bid" className="block text-xs text-gray-400 mb-1">Max Bid ($)</label>
             <input
+              id="snipe-max-bid"
               type="number" min="0.01" step="0.01" placeholder="e.g. 25.00"
               value={bidAmount} onChange={e => setBidAmount(e.target.value)} required
               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
@@ -858,16 +920,17 @@ function SnipeModal({ auction, logins, defaultSnipeSec, onClose, onSubmit }) {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">
+            <label htmlFor="snipe-seconds" className="block text-xs text-gray-400 mb-1">
               Snipe timing — bid this many seconds before auction ends
             </label>
             <input
+              id="snipe-seconds"
               type="number" min="1" max="120"
               value={snipeSec} onChange={e => setSnipeSec(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
             />
           </div>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p role="alert" className="text-red-400 text-xs">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 py-2 rounded bg-gray-800 hover:bg-gray-700 text-sm transition-colors">
@@ -879,7 +942,7 @@ function SnipeModal({ auction, logins, defaultSnipeSec, onClose, onSubmit }) {
             </button>
           </div>
         </form>
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -922,9 +985,9 @@ function BulkSnipeModal({ auctions, logins, defaultSnipeSec, onClose, onSubmit }
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4"
       onClick={e => { if (e.target === overlayRef.current && !progress) onClose() }}
     >
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
+      <DialogPanel labelledBy="bulk-snipe-title" onClose={progress ? undefined : onClose} className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
         <div className="p-5 border-b border-gray-800">
-          <h2 className="text-base font-semibold">Bulk Snipe — {auctions.length} items</h2>
+          <h2 id="bulk-snipe-title" className="text-base font-semibold">Bulk Snipe - {auctions.length} items</h2>
         </div>
         {!progress ? (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -934,21 +997,21 @@ function BulkSnipeModal({ auctions, logins, defaultSnipeSec, onClose, onSubmit }
               ))}
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Account</label>
-              <select value={loginId} onChange={e => setLoginId(e.target.value)}
+              <label htmlFor="bulk-snipe-account" className="block text-xs text-gray-400 mb-1">Account</label>
+              <select id="bulk-snipe-account" value={loginId} onChange={e => setLoginId(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
                 {logins.map(l => <option key={l.id} value={l.id}>{l.display_name || l.bw_email}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Max Bid ($ — applied to all)</label>
-              <input type="number" min="0.01" step="0.01" required
+              <div id="bulk-snipe-max-bid-label" className="block text-xs text-gray-400 mb-1">Max Bid ($ - applied to all)</div>
+              <input aria-labelledby="bulk-snipe-max-bid-label" id="bulk-snipe-max-bid" aria-label="Max bid applied to all selected auctions" type="number" min="0.01" step="0.01" required
                 value={bidAmount} onChange={e => setBidAmount(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue" />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Snipe seconds</label>
-              <input type="number" min="1" max="120"
+              <label htmlFor="bulk-snipe-seconds" className="block text-xs text-gray-400 mb-1">Snipe seconds</label>
+              <input id="bulk-snipe-seconds" type="number" min="1" max="120"
                 value={snipeSec} onChange={e => setSnipeSec(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue" />
             </div>
@@ -985,7 +1048,7 @@ function BulkSnipeModal({ auctions, logins, defaultSnipeSec, onClose, onSubmit }
             )}
           </div>
         )}
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -1203,7 +1266,6 @@ export default function Browse() {
     // Not in any cache yet — open modal with stub; AuctionDetailModal fetches full details
     setDetailTarget({ id: openId })
     setSearchParams({}, { replace: true })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
   const [defaultSec, setDefaultSec]     = useState(5)
   const [snipeSuccess, setSnipeSuccess] = useState('')
@@ -1226,7 +1288,6 @@ export default function Browse() {
       setDefaultSec(cfg?.defaults?.snipe_seconds ?? 5)
       setDefaultLocationId(cfg?.defaults?.default_location_id || '')
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [get])
 
   // ── Load locations when login changes (no defaultLocationId dep to avoid double-fetch) ──
@@ -1291,7 +1352,6 @@ export default function Browse() {
       try { localStorage.setItem(LS_ENDED, JSON.stringify(next)) } catch {}
       return next
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slowTick, items])
 
   // ── Parse quoted phrases from search input ────────────────────────────────
@@ -1374,7 +1434,6 @@ export default function Browse() {
 
       return newLive
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems, slowTick])
 
   // After render: restore scroll so anchor item is at the same position
@@ -1459,7 +1518,6 @@ export default function Browse() {
   useEffect(() => {
     autoLoadCountRef.current = 0
     if (capReached) setCapReached(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quickFilters, conditions, sortBy, search, selectedLocations])
 
   useEffect(() => {
@@ -1565,8 +1623,9 @@ export default function Browse() {
 
         {/* Account selector */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Account</label>
+          <label htmlFor="browse-filter-account" className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Account</label>
           <select
+            id="browse-filter-account"
             value={loginId}
             onChange={e => { setLoginId(e.target.value); reloadSnipes(e.target.value) }}
             className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
@@ -1579,12 +1638,13 @@ export default function Browse() {
 
         {/* Quick filters */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Quick Filters</label>
+          <div className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Quick Filters</div>
           <div className="flex flex-col gap-1">
             {QUICK_FILTERS.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => toggleQuickFilter(value)}
+                aria-pressed={quickFilters.includes(value)}
                 className={`text-left px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                   quickFilters.includes(value)
                     ? 'bg-bw-blue text-white'
@@ -1599,7 +1659,7 @@ export default function Browse() {
 
         {/* Condition */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Condition</label>
+          <div className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Condition</div>
           <div className="flex flex-col gap-1">
             {CONDITIONS.map(({ value, label }) => (
               <label key={value} className="flex items-center gap-2 text-sm cursor-pointer select-none">
@@ -1617,10 +1677,11 @@ export default function Browse() {
 
         {/* Price range */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Retail Price ($)</label>
+          <div className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide" id="browse-price-range-label">Retail Price ($)</div>
           <div className="flex gap-1.5 items-center">
             <input
               type="number" min="0" placeholder="Min"
+              aria-label="Minimum retail price"
               value={minPrice}
               onChange={e => setMinPrice(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-bw-blue"
@@ -1628,6 +1689,7 @@ export default function Browse() {
             <span className="text-gray-500 text-xs">–</span>
             <input
               type="number" min="0" placeholder="Max"
+              aria-label="Maximum retail price"
               value={maxPrice}
               onChange={e => setMaxPrice(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-bw-blue"
@@ -1692,8 +1754,12 @@ export default function Browse() {
             className="md:hidden p-1.5 rounded bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0"
             onClick={() => setSidebarOpen(s => !s)}
             title="Toggle filters"
+            aria-label="Toggle filters"
+            aria-expanded={sidebarOpen}
           >☰</button>
+          <label htmlFor="browse-sort" className="sr-only">Sort auctions</label>
           <select
+            id="browse-sort"
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
             className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
@@ -1704,6 +1770,7 @@ export default function Browse() {
             <div className="relative flex-1 min-w-0">
               <input
                 type="text" placeholder='Search auctions… (use "quotes" for exact phrase)'
+                aria-label="Search auctions"
                 value={search} onChange={e => setSearch(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bw-blue"
               />
@@ -1719,10 +1786,10 @@ export default function Browse() {
             </button>
           </form>
           {snipeSuccess && (
-            <span className="text-bw-green text-xs font-medium">{snipeSuccess}</span>
+            <span role="status" aria-live="polite" className="text-bw-green text-xs font-medium">{snipeSuccess}</span>
           )}
           {/* Layout toggle */}
-          <div className="flex rounded overflow-hidden border border-gray-700 shrink-0 text-sm">
+          <div className="flex rounded overflow-hidden border border-gray-700 shrink-0 text-sm" aria-label="Layout options">
             {[
               { value: 'small',  label: 'S', title: 'Small grid'  },
               { value: 'medium', label: 'M', title: 'Medium grid' },
@@ -1733,6 +1800,8 @@ export default function Browse() {
                 key={opt.value}
                 onClick={() => setLayout(opt.value)}
                 title={opt.title}
+                aria-label={opt.title}
+                aria-pressed={layout === opt.value}
                 className={`px-2.5 py-1.5 transition-colors ${layout === opt.value ? 'bg-bw-blue text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
               >{opt.label}</button>
             ))}
@@ -1755,14 +1824,14 @@ export default function Browse() {
             active ? 'text-white border-bw-blue' : 'text-gray-500 border-transparent hover:text-gray-300'
           }`
           return (
-            <div className="flex items-center gap-0 px-5 pt-3 border-b border-gray-800">
-              <button onClick={() => setActiveTab(TABS.LIVE)} className={tabCls(activeTab === TABS.LIVE)}>
+            <div role="tablist" aria-label="Auction lists" className="flex items-center gap-0 px-5 pt-3 border-b border-gray-800">
+              <button role="tab" aria-selected={activeTab === TABS.LIVE} onClick={() => setActiveTab(TABS.LIVE)} className={tabCls(activeTab === TABS.LIVE)}>
                 Live {!loading && <span className="text-gray-500 ml-1">({liveCount})</span>}
               </button>
-              <button onClick={() => setActiveTab(TABS.ENDED)} className={tabCls(activeTab === TABS.ENDED)}>
+              <button role="tab" aria-selected={activeTab === TABS.ENDED} onClick={() => setActiveTab(TABS.ENDED)} className={tabCls(activeTab === TABS.ENDED)}>
                 Ended {endedCount > 0 && <span className="text-gray-500 ml-1">({endedCount})</span>}
               </button>
-              <button onClick={() => setActiveTab(TABS.RECENT)} className={tabCls(activeTab === TABS.RECENT)}>
+              <button role="tab" aria-selected={activeTab === TABS.RECENT} onClick={() => setActiveTab(TABS.RECENT)} className={tabCls(activeTab === TABS.RECENT)}>
                 Recent {recentCount > 0 && <span className="text-gray-500 ml-1">({recentCount})</span>}
               </button>
             </div>
@@ -1831,7 +1900,11 @@ export default function Browse() {
                     const isEnded  = secsLeft !== null && secsLeft <= 0
                     return (
                       <div key={ra.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View auction details for ${item.title || 'untitled auction'}`}
                         onClick={() => { setDetailTarget(ra); recordView(ra) }}
+                        onKeyDown={activateOnEnterOrSpace(() => { setDetailTarget(ra); recordView(ra) })}
                         className={`bg-gray-800/60 rounded-lg flex flex-col hover:bg-gray-750 transition-colors cursor-pointer overflow-hidden border border-gray-700/30 ${isEnded ? 'opacity-60' : ''}`}>
                         {imgUrl
                           ? <div className={`w-full ${IMG_H[layout]} bg-gray-950 flex items-center justify-center overflow-hidden`}>
@@ -1885,7 +1958,7 @@ export default function Browse() {
                         const retail = item.price || 0
                         const imgUrl = getItemImage(item)
                         return (
-                          <tr key={ea.id} onClick={() => { setDetailTarget(ea); recordView(ea) }}
+                          <tr key={ea.id} role="button" tabIndex={0} aria-label={`View auction details for ${item.title || 'untitled auction'}`} onClick={() => { setDetailTarget(ea); recordView(ea) }} onKeyDown={activateOnEnterOrSpace(() => { setDetailTarget(ea); recordView(ea) })}
                             className={`border-b border-gray-800/60 hover:bg-gray-800/50 cursor-pointer transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-900/30'}`}>
                             <td className="px-2 py-1.5">
                               {imgUrl ? <img src={imgUrl} alt="" className="w-8 h-8 object-cover rounded bg-gray-700 opacity-60" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} />
@@ -1924,7 +1997,7 @@ export default function Browse() {
                   const retail = item.price || 0
                   const imgUrl = getItemImage(item)
                   return (
-                    <div key={ea.id} onClick={() => { setDetailTarget(ea); recordView(ea) }}
+                    <div key={ea.id} role="button" tabIndex={0} aria-label={`View auction details for ${item.title || 'untitled auction'}`} onClick={() => { setDetailTarget(ea); recordView(ea) }} onKeyDown={activateOnEnterOrSpace(() => { setDetailTarget(ea); recordView(ea) })}
                       className="bg-gray-800/60 rounded-lg flex flex-col hover:bg-gray-750 transition-colors cursor-pointer overflow-hidden border border-gray-700/30 opacity-75">
                       {imgUrl
                         ? <div className={`w-full ${IMG_H[layout]} bg-gray-950 flex items-center justify-center overflow-hidden`}>
@@ -1984,12 +2057,17 @@ export default function Browse() {
                   <div
                     key={auction.id}
                     data-auction-id={auction.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View auction details for ${item.title || 'untitled auction'}`}
                     className="bg-gray-800 rounded-lg flex flex-col hover:bg-gray-750 transition-colors cursor-pointer overflow-hidden border border-gray-700/50 relative"
                     onClick={() => { setDetailTarget(auction); recordView(auction) }}
+                    onKeyDown={activateOnEnterOrSpace(() => { setDetailTarget(auction); recordView(auction) })}
                   >
                     {/* Bulk select checkbox (Feature 7) */}
                     <div className="absolute top-2 right-2 z-10" onClick={e => e.stopPropagation()}>
                       <input type="checkbox"
+                        aria-label={`Select ${item.title || 'auction'}`}
                         checked={selected.has(auction.id)}
                         onChange={() => toggleSelect(auction.id)}
                         className="w-4 h-4 accent-bw-blue" />
@@ -2109,12 +2187,17 @@ export default function Browse() {
                       <tr
                         key={auction.id}
                         data-auction-id={auction.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View auction details for ${item.title || 'untitled auction'}`}
                         className={`border-b border-gray-800/60 hover:bg-gray-800/50 cursor-pointer transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-900/30'}`}
                         onClick={() => { setDetailTarget(auction); recordView(auction) }}
+                        onKeyDown={activateOnEnterOrSpace(() => { setDetailTarget(auction); recordView(auction) })}
                       >
                         {/* Bulk select checkbox (Feature 7) */}
                         <td className="px-2 py-1.5" onClick={e => e.stopPropagation()}>
                           <input type="checkbox"
+                            aria-label={`Select ${item.title || 'auction'}`}
                             checked={selected.has(auction.id)}
                             onChange={() => toggleSelect(auction.id)}
                             className="w-4 h-4 accent-bw-blue" />

@@ -2,39 +2,13 @@
  * AuthContext — global auth state (user, login/logout, token management).
  *
  * SECURITY NOTE: The frontend trusts the backend for all auth decisions.
- * decodeUser() extracts user_id and email from the JWT payload for display
- * purposes only. Admin checks and permission decisions are always made
- * server-side via /settings/me or other API calls. Never trust the JWT's
- * is_admin or any other privilege claim on the client without backend
- * verification.
+ * Admin checks and permission decisions are always made server-side via
+ * /auth/me or other API calls. Never trust JWT privilege claims on the client.
  */
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { apiFetch, setTokens, clearTokens, getToken, fmtApiError } from '../hooks/useApi'
 
 const AuthContext = createContext(null)
-
-function decodeUser(token) {
-  // Use jwt-decode (structure-only verification, not signature) instead of
-  // raw atob() which silently ignores malformed payloads.
-  try {
-    // Dynamic import to keep the bundle lean if jwt-decode isn't installed;
-    // falls back to manual parse if the import fails.
-    // eslint-disable-next-line no-undef
-    const payload = (typeof jwt_decode === 'function')
-      ? jwt_decode(token)
-      : JSON.parse(atob(token.split('.')[1]))
-    return {
-      user_id:      payload.sub || null,
-      email:        payload.email || null,
-      display_name: payload.display_name || payload.email || null,
-      // Frontend trusts the backend's /settings/me for is_admin; we leave
-      // this as a best-effort display hint only (may be stale).
-      is_admin:     payload.is_admin || false,
-    }
-  } catch {
-    return null
-  }
-}
 
 // Re-fetch user profile from the backend (authoritative source for admin flag).
 async function fetchUserFromBackend() {

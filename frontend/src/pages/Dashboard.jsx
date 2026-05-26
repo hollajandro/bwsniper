@@ -4,6 +4,7 @@ import { useApi } from '../hooks/useApi'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
 import { getAllImgs } from '../utils/images'
+import { DialogPanel } from '../components/a11y'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -123,7 +124,7 @@ function SnipeDetailModal({ snipe, priceCache, onClose }) {
       className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-0 sm:items-center sm:p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" className="bg-gray-900 border border-gray-700 rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col shadow-2xl">
+      <DialogPanel labelledBy="detail-modal-title" onClose={onClose} className="bg-gray-900 border border-gray-700 rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-800 gap-3">
           <div className="flex-1 min-w-0">
@@ -148,18 +149,21 @@ function SnipeDetailModal({ snipe, priceCache, onClose }) {
           {/* Images */}
           {imgs.length > 0 && (
             <div>
-              <div
-                className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[280px]"
+              <button
+                type="button"
+                className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[280px] w-full"
                 onClick={() => setLightbox(true)}
-                title="Click to enlarge"
+                aria-label={`Enlarge image of ${item.title || 'auction item'}`}
               >
                 <img src={imgs[imgIdx]} alt={item.title || ''} className="max-w-full max-h-full object-contain"
                   onError={e => { e.currentTarget.style.opacity = '0.2' }} />
-              </div>
+              </button>
               {imgs.length > 1 && (
                 <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1">
                   {imgs.map((u, i) => (
                     <button key={i} onClick={() => setImgIdx(i)}
+                      aria-label={`Show image ${i + 1} of ${imgs.length}`}
+                      aria-pressed={i === imgIdx}
                       className={`shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-colors bg-gray-800 ${i === imgIdx ? 'border-bw-blue' : 'border-transparent hover:border-gray-600'}`}>
                       <img src={u} alt="" className="w-full h-full object-contain"
                         onError={e => { e.currentTarget.parentElement.style.display = 'none' }} />
@@ -282,7 +286,7 @@ function SnipeDetailModal({ snipe, priceCache, onClose }) {
             Open in Browser ↗
           </a>
         </div>
-      </div>
+      </DialogPanel>
 
       {/* Lightbox */}
       {lightbox && imgs.length > 0 && (
@@ -325,7 +329,7 @@ function EditModal({ snipe, onSave, onClose }) {
       const body = {}
       const bidVal  = parseFloat(bid)
       const secsVal = parseInt(secs)
-      if (!isNaN(bidVal)  && bidVal  > 0) body.bid_amount    = bidVal
+      if (!isNaN(bidVal) && bidVal > 0) body.bid_amount = bidVal
       if (!isNaN(secsVal) && secsVal > 0) body.snipe_seconds = secsVal
       const res = await put(`/snipes/${snipe.id}`, body)
       if (!res.ok) {
@@ -356,14 +360,14 @@ function EditModal({ snipe, onSave, onClose }) {
         {err && <p className="text-xs text-red-400">{err}</p>}
         <form onSubmit={handleSave} className="space-y-3">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Bid amount ($)</label>
-            <input type="number" step="0.01" min="0.01" required
+            <label htmlFor="edit-snipe-bid" className="block text-xs text-gray-400 mb-1">Bid amount ($)</label>
+            <input id="edit-snipe-bid" type="number" step="0.01" min="0.01" required
               value={bid} onChange={e => setBid(e.target.value)}
               className="field" />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Snipe seconds (1–120)</label>
-            <input type="number" min="1" max="120" required
+            <label htmlFor="edit-snipe-seconds" className="block text-xs text-gray-400 mb-1">Snipe seconds (1-120)</label>
+            <input aria-label="Snipe seconds" id="edit-snipe-seconds" type="number" min="1" max="120" required
               value={secs} onChange={e => setSecs(e.target.value)}
               className="field" />
           </div>
@@ -499,26 +503,26 @@ function AddSnipeForm({ logins, defaultSnipeSecs, onAdded }) {
       {err && <p className="text-xs text-bw-red mb-2">{err}</p>}
       <div className="flex flex-wrap gap-2 items-end">
         <div className="flex-1 min-w-48">
-          <label className="block text-xs text-gray-400 mb-1">BuyWander auction URL</label>
-          <input type="url" required placeholder="https://www.buywander.com/auctions/..."
+          <label htmlFor="new-snipe-url" className="block text-xs text-gray-400 mb-1">BuyWander auction URL</label>
+          <input id="new-snipe-url" type="url" required placeholder="https://www.buywander.com/auctions/..."
             value={url} onChange={e => setUrl(e.target.value)}
             className="field" />
         </div>
         <div className="w-28">
-          <label className="block text-xs text-gray-400 mb-1">Max bid ($)</label>
-          <input type="number" step="0.01" min="0.01" required
+          <label htmlFor="new-snipe-bid" className="block text-xs text-gray-400 mb-1">Max bid ($)</label>
+          <input id="new-snipe-bid" type="number" step="0.01" min="0.01" required
             value={bid} onChange={e => setBid(e.target.value)}
             className="field" />
         </div>
         <div className="w-24">
-          <label className="block text-xs text-gray-400 mb-1">Snipe at (s)</label>
-          <input type="number" min="1" max="120" required
+          <label htmlFor="new-snipe-seconds" className="block text-xs text-gray-400 mb-1">Snipe at (s)</label>
+          <input id="new-snipe-seconds" type="number" min="1" max="120" required
             value={secs} onChange={e => setSecs(e.target.value)}
             className="field" />
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Account</label>
-          <select value={loginId} onChange={e => setLoginId(e.target.value)}
+          <label htmlFor="new-snipe-account" className="block text-xs text-gray-400 mb-1">Account</label>
+          <select id="new-snipe-account" value={loginId} onChange={e => setLoginId(e.target.value)}
             className="field w-auto">
             {logins.map(l => (
               <option key={l.id} value={l.id}>{l.display_name || l.bw_email}</option>
@@ -542,7 +546,7 @@ function WinToast({ title, price, onClose }) {
   }, [onClose])
 
   return (
-    <div className="fixed top-4 right-4 z-50 bg-gray-900 border border-bw-green/50 rounded-lg px-5 py-4 shadow-2xl max-w-xs animate-bounce-once">
+    <div role="status" aria-live="polite" className="fixed top-4 right-4 z-50 bg-gray-900 border border-bw-green/50 rounded-lg px-5 py-4 shadow-2xl max-w-xs animate-bounce-once">
       <p className="font-bold text-lg text-bw-green">🎉 You Won!</p>
       <p className="text-sm mt-1 truncate text-gray-200">{title}</p>
       {price != null && <p className="text-sm font-mono mt-0.5 text-white">Final: ${Number(price).toFixed(2)}</p>}
@@ -574,7 +578,7 @@ export default function Dashboard() {
       ])
       if (snipeRes.ok) setSnipes(await snipeRes.json())
       if (loginRes.ok) setLogins(await loginRes.json())
-      if (settRes.ok)  setSettings(await settRes.json())
+      if (settRes.ok) setSettings(await settRes.json())
     } finally {
       setLoading(false)
     }
@@ -627,7 +631,7 @@ export default function Dashboard() {
       if (s.status === 'Won') {
         a.won++
         if (s.final_price != null) {
-          a.saved  += s.bid_amount - s.final_price
+          a.saved += s.bid_amount - s.final_price
           a.discountSum += (s.bid_amount - s.final_price) / s.bid_amount * 100
           a.discountN++
         }

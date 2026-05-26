@@ -127,7 +127,9 @@ export default function Log() {
         <h1 className="text-sm font-semibold text-white mr-1">Event Log</h1>
 
         {/* Account filter */}
+        <label htmlFor="log-account-filter" className="sr-only">Account filter</label>
         <select
+          id="log-account-filter"
           value={loginId}
           onChange={e => setLoginId(e.target.value)}
           className="field w-auto"
@@ -139,7 +141,9 @@ export default function Log() {
         </select>
 
         {/* Type filter */}
+        <label htmlFor="log-type-filter" className="sr-only">Event type filter</label>
         <select
+          id="log-type-filter"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
           className="field w-auto"
@@ -152,6 +156,7 @@ export default function Log() {
         <input
           type="text"
           placeholder="Filter by message or auction ID…"
+          aria-label="Filter events by message or auction ID"
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
           className="field flex-1 min-w-[180px]"
@@ -194,7 +199,7 @@ export default function Log() {
             <p className="text-gray-500 text-sm font-sans">No events found.</p>
           </div>
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" aria-label="Event log">
             <thead className="sticky top-0 bg-gray-900 z-10">
               <tr className="text-left text-gray-500 text-xs uppercase tracking-wide">
                 <th className="px-4 py-2 font-medium w-36">Time</th>

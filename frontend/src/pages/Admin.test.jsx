@@ -149,7 +149,7 @@ describe('Admin remote redundancy UI', () => {
     fireEvent.change(screen.getByPlaceholderText('Agent name'), {
       target: { value: 'Backup Agent' },
     })
-    fireEvent.change(screen.getByPlaceholderText('Region \(optional\)'), {
+    fireEvent.change(screen.getByPlaceholderText('Region (optional)'), {
       target: { value: 'eu-central-1' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create Agent' }))
@@ -162,6 +162,55 @@ describe('Admin remote redundancy UI', () => {
     })
     expect(screen.getByText('super-secret-agent-key')).not.toBeNull()
     expect(screen.getAllByText((content) => content.includes('****'))[0]).not.toBeNull()
+  })
+
+  it('exposes modal names, field labels, live status, and Escape close behavior', async () => {
+    await renderAdmin()
+
+    api.post.mockResolvedValueOnce(
+      response({
+        id: 'user-3',
+        email: 'new@example.com',
+        display_name: 'New Person',
+        is_admin: false,
+        remote_redundancy_enabled: false,
+        remote_agent_id: null,
+        created_at: '2026-04-24T10:00:00.000Z',
+      })
+    )
+
+    const createButton = screen.getByRole('button', { name: /\+ Create User/i })
+    fireEvent.click(createButton)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Create User' })
+    expect(within(dialog).getByLabelText('Email address')).not.toBeNull()
+    expect(within(dialog).getByLabelText('Display name')).not.toBeNull()
+    expect(within(dialog).getByLabelText('Password')).not.toBeNull()
+    expect(within(dialog).getByLabelText('Grant admin privileges')).not.toBeNull()
+
+    fireEvent.change(within(dialog).getByLabelText('Email address'), {
+      target: { value: 'new@example.com' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Display name'), {
+      target: { value: 'New Person' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Confirm password'), {
+      target: { value: 'password123' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create User' }))
+
+    await screen.findByRole('status')
+    expect(screen.getByRole('status').textContent).toContain('Created user new@example.com')
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Create User/i }))
+    const secondDialog = await screen.findByRole('dialog', { name: 'Create User' })
+    fireEvent.keyDown(secondDialog, { key: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Create User' })).toBeNull()
+    })
   })
 
   it('rotates a key through confirmation and shows the replacement key once', async () => {

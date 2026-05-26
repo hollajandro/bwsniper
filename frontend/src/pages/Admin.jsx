@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useApi, fmtApiError } from '../hooks/useApi'
+import { DialogPanel } from '../components/a11y'
 
 function ErrorBanner({ message, onDismiss }) {
   if (!message) return null
@@ -59,10 +60,12 @@ function CreateUserModal({ onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="card w-full max-w-sm mx-4 p-6">
-        <h3 className="text-base font-semibold text-white mb-4">Create User</h3>
+      <DialogPanel labelledBy="create-user-title" onClose={onClose} className="card w-full max-w-sm mx-4 p-6">
+        <h3 id="create-user-title" className="text-base font-semibold text-white mb-4">Create User</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <label htmlFor="create-user-email" className="sr-only">Email address</label>
           <input
+            id="create-user-email"
             type="email"
             placeholder="Email address"
             value={form.email}
@@ -71,14 +74,18 @@ function CreateUserModal({ onClose, onSave }) {
             autoFocus
             required
           />
+          <label htmlFor="create-user-display-name" className="sr-only">Display name</label>
           <input
+            id="create-user-display-name"
             type="text"
             placeholder="Display name (optional)"
             value={form.display_name}
             onChange={(e) => set('display_name', e.target.value)}
             className="field w-full"
           />
+          <label htmlFor="create-user-password" className="sr-only">Password</label>
           <input
+            id="create-user-password"
             type="password"
             placeholder="Password"
             value={form.password}
@@ -86,7 +93,9 @@ function CreateUserModal({ onClose, onSave }) {
             className="field w-full"
             required
           />
+          <label htmlFor="create-user-confirm" className="sr-only">Confirm password</label>
           <input
+            id="create-user-confirm"
             type="password"
             placeholder="Confirm password"
             value={confirm}
@@ -106,7 +115,7 @@ function CreateUserModal({ onClose, onSave }) {
             />
             Grant admin privileges
           </label>
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn btn-primary flex-1">
               {saving ? 'Creating...' : 'Create User'}
@@ -116,7 +125,7 @@ function CreateUserModal({ onClose, onSave }) {
             </button>
           </div>
         </form>
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -151,13 +160,15 @@ function ResetPasswordModal({ user, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="card w-full max-w-sm mx-4 p-6">
-        <h3 className="text-base font-semibold text-white mb-1">Reset Password</h3>
+      <DialogPanel labelledBy="reset-password-title" onClose={onClose} className="card w-full max-w-sm mx-4 p-6">
+        <h3 id="reset-password-title" className="text-base font-semibold text-white mb-1">Reset Password</h3>
         <p className="text-xs text-gray-400 mb-4">
           Set a new password for <span className="text-gray-200">{user.email}</span>
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <label htmlFor="reset-password-new" className="sr-only">New password</label>
           <input
+            id="reset-password-new"
             type="password"
             placeholder="New password"
             value={password}
@@ -168,7 +179,9 @@ function ResetPasswordModal({ user, onClose, onSave }) {
             className="field w-full"
             autoFocus
           />
+          <label htmlFor="reset-password-confirm" className="sr-only">Confirm password</label>
           <input
+            id="reset-password-confirm"
             type="password"
             placeholder="Confirm password"
             value={confirm}
@@ -178,7 +191,7 @@ function ResetPasswordModal({ user, onClose, onSave }) {
             }}
             className="field w-full"
           />
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn btn-primary flex-1">
               {saving ? 'Saving...' : 'Save'}
@@ -188,7 +201,7 @@ function ResetPasswordModal({ user, onClose, onSave }) {
             </button>
           </div>
         </form>
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -231,10 +244,12 @@ function CreateRemoteAgentModal({ onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="card w-full max-w-sm mx-4 p-6">
-        <h3 className="text-base font-semibold text-white mb-4">Create Remote Agent</h3>
+      <DialogPanel labelledBy="create-agent-title" onClose={onClose} className="card w-full max-w-sm mx-4 p-6">
+        <h3 id="create-agent-title" className="text-base font-semibold text-white mb-4">Create Remote Agent</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <label htmlFor="create-agent-name" className="sr-only">Agent name</label>
           <input
+            id="create-agent-name"
             type="text"
             placeholder="Agent name"
             value={form.name}
@@ -243,7 +258,9 @@ function CreateRemoteAgentModal({ onClose, onSave }) {
             autoFocus
             required
           />
+          <label htmlFor="create-agent-region" className="sr-only">Region</label>
           <input
+            id="create-agent-region"
             type="text"
             placeholder="Region (optional)"
             value={form.region}
@@ -259,7 +276,7 @@ function CreateRemoteAgentModal({ onClose, onSave }) {
             />
             Enable this agent immediately
           </label>
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn btn-primary flex-1">
               {saving ? 'Creating...' : 'Create Agent'}
@@ -269,7 +286,7 @@ function CreateRemoteAgentModal({ onClose, onSave }) {
             </button>
           </div>
         </form>
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -290,8 +307,8 @@ function ApiKeyModal({ agentName, apiKey, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="card w-full max-w-lg mx-4 p-6">
-        <h3 className="text-base font-semibold text-white mb-1">Remote Agent API Key</h3>
+      <DialogPanel labelledBy="remote-agent-key-title" onClose={onClose} className="card w-full max-w-lg mx-4 p-6">
+        <h3 id="remote-agent-key-title" className="text-base font-semibold text-white mb-1">Remote Agent API Key</h3>
         <p className="text-sm text-gray-300 mb-4">
           Save this key for <span className="text-white font-medium">{agentName}</span>. It
           will not be shown again after you close this dialog.
@@ -314,9 +331,9 @@ function ApiKeyModal({ agentName, apiKey, onClose }) {
           </div>
         </div>
         {copyStatus === 'Copy failed' && (
-          <p className="mt-3 text-xs text-red-400">Clipboard access failed. Copy the key manually.</p>
+          <p role="alert" className="mt-3 text-xs text-red-400">Clipboard access failed. Copy the key manually.</p>
         )}
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -324,10 +341,9 @@ function ApiKeyModal({ agentName, apiKey, onClose }) {
 function ConfirmDialog({ title, message, confirmLabel, confirmClassName, onCancel, onConfirm }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+      <DialogPanel
+        labelledBy="confirm-dialog-title"
+        onClose={onCancel}
         className="card w-full max-w-sm mx-4 p-6"
         onClick={(e) => e.stopPropagation()}
       >
@@ -343,7 +359,7 @@ function ConfirmDialog({ title, message, confirmLabel, confirmClassName, onCance
             {confirmLabel}
           </button>
         </div>
-      </div>
+      </DialogPanel>
     </div>
   )
 }
@@ -1020,7 +1036,7 @@ export default function Admin() {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-800 border border-gray-700 text-sm text-white px-4 py-2.5 rounded-lg shadow-mat-3 z-50">
+        <div role="status" aria-live="polite" className="fixed bottom-6 right-6 bg-gray-800 border border-gray-700 text-sm text-white px-4 py-2.5 rounded-lg shadow-mat-3 z-50">
           {toast}
         </div>
       )}

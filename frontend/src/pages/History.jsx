@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useApi } from '../hooks/useApi'
 import { getAllImgs } from '../utils/images'
+import { DialogPanel } from '../components/a11y'
 
 // ─── History detail modal ─────────────────────────────────────────────────────
 
@@ -74,11 +75,11 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
       className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-0 sm:items-center sm:p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div role="dialog" aria-modal="true" className="card rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col">
+      <DialogPanel labelledBy="history-detail-title" onClose={onClose} className="card rounded-t-xl sm:rounded-xl w-full max-w-2xl max-h-[100dvh] sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between p-4 sm:p-5 border-b border-gray-800 gap-3">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-white leading-snug">
+            <h2 id="history-detail-title" className="text-base font-semibold text-white leading-snug">
               {item.title || record.title || '(Untitled)'}
             </h2>
             {(item.brand || item.manufacturer) && (
@@ -99,18 +100,21 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
           {/* Images */}
           {imgs.length > 0 && (
             <div>
-              <div
-                className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[256px]"
+              <button
+                type="button"
+                className="bg-gray-950 rounded-lg overflow-hidden flex items-center justify-center cursor-zoom-in h-[256px] w-full"
                 onClick={() => setLightbox(true)}
-                title="Click to enlarge"
+                aria-label={`Enlarge image of ${item.title || 'auction item'}`}
               >
                 <img src={imgs[imgIdx]} alt={item.title || ''} className="max-w-full max-h-full object-contain"
                   onError={e => { e.currentTarget.style.opacity = '0.2' }} />
-              </div>
+              </button>
               {imgs.length > 1 && (
                 <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1">
                   {imgs.map((u, i) => (
                     <button key={i} onClick={() => setImgIdx(i)}
+                      aria-label={`Show image ${i + 1} of ${imgs.length}`}
+                      aria-pressed={i === imgIdx}
                       className={`shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-colors bg-gray-800 ${i === imgIdx ? 'border-bw-blue' : 'border-transparent hover:border-gray-600'}`}>
                       <img src={u} alt="" className="w-full h-full object-contain"
                         onError={e => { e.currentTarget.parentElement.style.display = 'none' }} />
@@ -233,7 +237,7 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
             Open in Browser ↗
           </a>
         </div>
-      </div>
+      </DialogPanel>
 
       {/* Lightbox */}
       {lightbox && imgs.length > 0 && (
@@ -332,7 +336,9 @@ export default function History() {
         <HistoryDetailModal record={detailRecord} priceCache={priceCache} onClose={() => setDetailRecord(null)} />
       )}
       <div className="flex items-center gap-4 flex-wrap">
+        <label htmlFor="history-account" className="sr-only">Account</label>
         <select
+          id="history-account"
           value={loginId}
           onChange={e => setLoginId(e.target.value)}
           className="field w-auto"
@@ -342,6 +348,7 @@ export default function History() {
           ))}
         </select>
         <input
+          aria-label="Search history"
           type="text"
           placeholder="Search history..."
           value={search}

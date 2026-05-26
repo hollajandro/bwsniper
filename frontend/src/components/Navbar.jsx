@@ -22,7 +22,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="bg-gray-900 border-b border-gray-800 px-5 flex items-center justify-between h-[52px] shadow-mat-1 z-40 shrink-0">
+      <nav aria-label="Primary navigation" className="bg-gray-900 border-b border-gray-800 px-5 flex items-center justify-between h-[52px] shadow-mat-1 z-40 shrink-0">
         {/* Logo + nav */}
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -41,6 +41,7 @@ export default function Navbar() {
                 <Link
                   key={path}
                   to={path}
+                  aria-current={active ? 'page' : undefined}
                   className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     active
                       ? 'text-white'
@@ -75,12 +76,13 @@ export default function Navbar() {
           onClick={() => setMenuOpen(m => !m)}
           aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
           aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
         >
           {menuOpen ? '✕' : '☰'}
         </button>
       </nav>
       {menuOpen && (
-        <div className="md:hidden bg-gray-900 border-b border-gray-800 px-4 py-2 space-y-0.5 z-30">
+        <div id="mobile-navigation" className="md:hidden bg-gray-900 border-b border-gray-800 px-4 py-2 space-y-0.5 z-30">
           {navItems.map(({ path, label }) => {
             const active = location.pathname === path
             return (
@@ -88,6 +90,7 @@ export default function Navbar() {
                 key={path}
                 to={path}
                 onClick={() => setMenuOpen(false)}
+                aria-current={active ? 'page' : undefined}
                 className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
                 }`}

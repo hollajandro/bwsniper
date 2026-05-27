@@ -21,17 +21,47 @@ TESTDEPS_DIR = BACKEND_DIR / ".testdeps"
 VENV_DIR = BACKEND_DIR / ".venv"
 
 
-def _venv_python() -> Path:
-    return VENV_DIR / "Scripts" / "python.exe"
+def _is_windows_exe(path: Path) -> bool:
+    return path.suffix.lower() == ".exe"
+
+
+def _is_usable_binary(path: Path) -> bool:
+    if not path.exists():
+        return False
+    if os.name != "nt" and _is_windows_exe(path):
+        return False
+    return True
+
+
+def _venv_python() -> Path | None:
+    candidates = [
+        VENV_DIR / "bin" / "python",
+        VENV_DIR / "bin" / "python3",
+        VENV_DIR / "Scripts" / "python.exe",
+        VENV_DIR / "Scripts" / "python",
+    ]
+    for candidate in candidates:
+        if _is_usable_binary(candidate):
+            return candidate
+    return None
+
+
+def _use_testdeps() -> bool:
+    return os.environ.get("BWSNIPER_USE_TESTDEPS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _tool_dirs() -> list[Path]:
-    candidates = [
+    candidates: list[Path] = [
         VENV_DIR / "Scripts",
         VENV_DIR / "bin",
-        TESTDEPS_DIR / "Scripts",
-        TESTDEPS_DIR / "bin",
     ]
+    if _use_testdeps():
+        candidates.extend([TESTDEPS_DIR / "Scripts", TESTDEPS_DIR / "bin"])
     return [path for path in candidates if path.exists()]
 
 
@@ -39,7 +69,7 @@ def _build_env() -> dict[str, str]:
     env = os.environ.copy()
 
     pythonpath_parts = []
-    if TESTDEPS_DIR.exists() and not _venv_python().exists():
+    if _use_testdeps() and TESTDEPS_DIR.exists() and _venv_python() is None:
         pythonpath_parts.append(str(TESTDEPS_DIR))
     if env.get("PYTHONPATH"):
         pythonpath_parts.append(env["PYTHONPATH"])
@@ -56,7 +86,7 @@ def _build_env() -> dict[str, str]:
 
 def _python_cmd() -> list[str]:
     venv_python = _venv_python()
-    if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
+    if venv_python and Path(sys.executable).resolve() != venv_python.resolve():
         return [str(venv_python)]
     return [sys.executable]
 
@@ -70,7 +100,7 @@ def _find_tool(tool_name: str) -> str | None:
     windows_name = f"{tool_name}.exe"
     for tool_dir in _tool_dirs():
         for candidate in (tool_dir / tool_name, tool_dir / windows_name):
-            if candidate.exists():
+            if _is_usable_binary(candidate):
                 return str(candidate)
     return None
 

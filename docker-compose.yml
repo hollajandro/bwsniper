@@ -91,6 +91,17 @@ services:
       # ACCESS_TOKEN_EXPIRE_MINUTES: "1440"   # 24 hours
       # REFRESH_TOKEN_EXPIRE_DAYS:  "30"
 
+      # Auth mode: internal, hybrid, or cloudflare.
+      AUTH_MODE: "${AUTH_MODE:-internal}"
+
+      # Cloudflare Access + authentik session bridge.
+      CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
+      CLOUDFLARE_ACCESS_AUD: "${CLOUDFLARE_ACCESS_AUD:-}"
+      CLOUDFLARE_ACCESS_ISSUER: "${CLOUDFLARE_ACCESS_ISSUER:-}"
+      CLOUDFLARE_ACCESS_JWKS_URL: "${CLOUDFLARE_ACCESS_JWKS_URL:-}"
+      CLOUDFLARE_ACCESS_AUTO_CREATE_USERS: "${CLOUDFLARE_ACCESS_AUTO_CREATE_USERS:-true}"
+      CLOUDFLARE_ACCESS_ADMIN_EMAILS: "${CLOUDFLARE_ACCESS_ADMIN_EMAILS:-}"
+
     volumes:
       # Persist Fernet key and other data files.
       - backend-data:/backend/data

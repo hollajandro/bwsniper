@@ -67,6 +67,8 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    auth_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    external_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     remote_redundancy_enabled: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
@@ -95,6 +97,15 @@ class User(Base):
     )
     remote_agent: Mapped["RemoteAgent | None"] = relationship(
         "RemoteAgent", back_populates="users"
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_users_auth_provider_subject",
+            "auth_provider",
+            "external_subject",
+            unique=True,
+        ),
     )
 
 

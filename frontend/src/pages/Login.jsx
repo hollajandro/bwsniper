@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const { login, register } = useAuth()
+  const { authConfig, login, register, loginWithCloudflare } = useAuth()
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,6 +27,22 @@ export default function Login() {
     }
   }
 
+  async function handleCloudflareLogin() {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithCloudflare()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const internalAuthEnabled = authConfig?.internal_auth_enabled !== false
+  const cloudflareAuthEnabled = authConfig?.cloudflare_auth_enabled === true
+    && authConfig?.cloudflare_access_configured === true
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
       <div className="w-full max-w-sm">
@@ -43,73 +59,102 @@ export default function Login() {
 
         {/* Card */}
         <div className="card p-6 space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {isRegister && (
+          {cloudflareAuthEnabled && (
+            <button
+              type="button"
+              onClick={handleCloudflareLogin}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? 'Please wait…' : 'Continue with authentik'}
+            </button>
+          )}
+
+          {cloudflareAuthEnabled && internalAuthEnabled && (
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-800" />
+              <span className="text-xs text-gray-500">or</span>
+              <div className="h-px flex-1 bg-gray-800" />
+            </div>
+          )}
+
+          {internalAuthEnabled && (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {isRegister && (
+                <div>
+                  <label htmlFor="display-name" className="sr-only">Display name</label>
+                  <input
+                    id="display-name"
+                    type="text"
+                    placeholder="Display name (optional)"
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    className="field"
+                  />
+                </div>
+              )}
               <div>
-                <label htmlFor="display-name" className="sr-only">Display name</label>
+                <label htmlFor="email" className="sr-only">Email</label>
                 <input
-                  id="display-name"
-                  type="text"
-                  placeholder="Display name (optional)"
-                  value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
                   className="field"
                 />
               </div>
-            )}
-            <div>
-              <label htmlFor="email" className="sr-only">Email</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="field"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="field"
-              />
-            </div>
-            {error && (
-              <p role="alert" className="text-bw-red text-xs bg-bw-red/10 border border-bw-red/20 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Please wait…
-                </span>
-              ) : (
-                isRegister ? 'Create Account' : 'Sign In'
+              <div>
+                <label htmlFor="password" className="sr-only">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="field"
+                />
+              </div>
+              {error && (
+                <p role="alert" className="text-bw-red text-xs bg-bw-red/10 border border-bw-red/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
               )}
-            </button>
-          </form>
+              <button type="submit" disabled={loading} className="btn-primary w-full mt-1">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Please wait…
+                  </span>
+                ) : (
+                  isRegister ? 'Create Account' : 'Sign In'
+                )}
+              </button>
+            </form>
+          )}
+
+          {!internalAuthEnabled && error && (
+            <p role="alert" className="text-bw-red text-xs bg-bw-red/10 border border-bw-red/20 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
         </div>
 
-        <p className="mt-5 text-center text-sm text-gray-500">
-          {isRegister ? 'Already have an account?' : "Don't have an account?"}
-          {' '}
-          <button
-            onClick={() => { setIsRegister(!isRegister); setError('') }}
-            className="text-bw-blue hover:text-bw-blue/80 font-medium transition-colors"
-          >
-            {isRegister ? 'Sign In' : 'Register'}
-          </button>
-        </p>
+        {internalAuthEnabled && (
+          <p className="mt-5 text-center text-sm text-gray-500">
+            {isRegister ? 'Already have an account?' : "Don't have an account?"}
+            {' '}
+            <button
+              onClick={() => { setIsRegister(!isRegister); setError('') }}
+              className="text-bw-blue hover:text-bw-blue/80 font-medium transition-colors"
+            >
+              {isRegister ? 'Sign In' : 'Register'}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   )

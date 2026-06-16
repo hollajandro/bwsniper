@@ -10,6 +10,42 @@ import { apiFetch, setTokens, clearTokens, getToken, fmtApiError } from '../hook
 
 const AuthContext = createContext(null)
 
+async function fetchAuthConfig() {
+  try {
+    const res = await fetch('/api/auth/config')
+    if (res.ok) return await res.json()
+  } catch {}
+  return {
+    auth_mode: 'internal',
+    internal_auth_enabled: true,
+    cloudflare_auth_enabled: false,
+    cloudflare_access_configured: false,
+  }
+}
+
+function userFromTokenResponse(data) {
+  return {
+    user_id:      data.user_id,
+    email:        data.email,
+    display_name: data.display_name || data.email,
+    is_admin:     data.is_admin || false,
+  }
+}
+
+async function startCloudflareSession() {
+  const res = await fetch('/api/auth/cloudflare/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(fmtApiError(err, 'Cloudflare Access sign-in failed'))
+  }
+  const data = await res.json()
+  setTokens(data.access_token, data.refresh_token)
+  return userFromTokenResponse(data)
+}
+
 // Re-fetch user profile from the backend (authoritative source for admin flag).
 async function fetchUserFromBackend() {
   try {
@@ -29,14 +65,21 @@ async function fetchUserFromBackend() {
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authConfig, setAuthConfig] = useState(null)
 
   // Restore session from stored token on mount — re-validate with backend
   useEffect(() => {
-    const token = getToken()
-    if (!token) { setLoading(false); return }
+    let cancelled = false
 
-    fetchUserFromBackend()
-      .then(profile => {
+    async function restoreSession() {
+      const config = await fetchAuthConfig()
+      if (cancelled) return
+      setAuthConfig(config)
+
+      const token = getToken()
+      if (token) {
+        const profile = await fetchUserFromBackend()
+        if (cancelled) return
         if (profile) {
           setUser({
             user_id:      profile.user_id,
@@ -44,13 +87,27 @@ export function AuthProvider({ children }) {
             display_name: profile.display_name || profile.email,
             is_admin:     profile.is_admin || false,
           })
-        } else {
-          // Token present but backend rejected it — clear it
-          clearTokens()
+          setLoading(false)
+          return
         }
-      })
-      .catch(() => clearTokens())
-      .finally(() => setLoading(false))
+        clearTokens()
+      }
+
+      if (config.cloudflare_auth_enabled && config.cloudflare_access_configured) {
+        try {
+          const cloudflareUser = await startCloudflareSession()
+          if (!cancelled) setUser(cloudflareUser)
+        } catch {}
+      }
+      if (!cancelled) setLoading(false)
+    }
+
+    restoreSession().catch(() => {
+      clearTokens()
+      if (!cancelled) setLoading(false)
+    })
+
+    return () => { cancelled = true }
   }, [])
 
   const login = useCallback(async (email, password) => {
@@ -65,12 +122,7 @@ export function AuthProvider({ children }) {
     }
     const data = await res.json()
     setTokens(data.access_token, data.refresh_token)
-    setUser({
-      user_id:      data.user_id,
-      email:        data.email,
-      display_name: data.display_name || data.email,
-      is_admin:     data.is_admin || false,
-    })
+    setUser(userFromTokenResponse(data))
     return data
   }, [])
 
@@ -86,13 +138,13 @@ export function AuthProvider({ children }) {
     }
     const data = await res.json()
     setTokens(data.access_token, data.refresh_token)
-    setUser({
-      user_id:      data.user_id,
-      email:        data.email,
-      display_name: data.display_name || data.email,
-      is_admin:     data.is_admin || false,
-    })
+    setUser(userFromTokenResponse(data))
     return data
+  }, [])
+
+  const loginWithCloudflare = useCallback(async () => {
+    const cloudflareUser = await startCloudflareSession()
+    setUser(cloudflareUser)
   }, [])
 
   const logout = useCallback(async () => {
@@ -110,7 +162,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authConfig, login, register, loginWithCloudflare, logout }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,6 +2,8 @@
 backend/app/services/auth_service.py — User registration, login, password hashing.
 """
 
+import json
+import secrets
 from typing import Optional
 
 import bcrypt
@@ -61,8 +63,81 @@ def register_user(
     db.add(user)
     db.flush()
 
-    # Create default config
-    import json
+    cfg = UserConfig(user_id=user.id, config_json=json.dumps(_DEFAULT_CONFIG))
+    db.add(cfg)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_or_create_external_user(
+    db: Session,
+    *,
+    provider: str,
+    subject: str,
+    email: str,
+    display_name: str | None = None,
+    auto_create: bool = True,
+    admin_emails: set[str] | None = None,
+) -> User:
+    """Resolve a user authenticated by an external IdP.
+
+    Existing internal users are linked by email the first time they arrive via
+    Cloudflare Access, which gives admins a reversible migration path.
+    """
+    normalized_email = email.strip().lower()
+    if not normalized_email:
+        raise ValueError("External identity is missing an email address.")
+    if not subject:
+        raise ValueError("External identity is missing a subject.")
+
+    user = (
+        db.query(User)
+        .filter(User.auth_provider == provider, User.external_subject == subject)
+        .first()
+    )
+    if user:
+        changed = False
+        if user.email != normalized_email:
+            user.email = normalized_email
+            changed = True
+        if display_name and user.display_name != display_name:
+            user.display_name = display_name
+            changed = True
+        if changed:
+            db.commit()
+            db.refresh(user)
+        return user
+
+    existing = db.query(User).filter(User.email == normalized_email).first()
+    if existing:
+        if existing.external_subject and existing.external_subject != subject:
+            raise ValueError(
+                "Email is already linked to a different external identity."
+            )
+        existing.auth_provider = provider
+        existing.external_subject = subject
+        if display_name and not existing.display_name:
+            existing.display_name = display_name
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    if not auto_create:
+        raise ValueError("No BwSniper user exists for this external identity.")
+
+    admin_emails = admin_emails or set()
+    is_first = db.query(User).count() == 0
+    user = User(
+        email=normalized_email,
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+        display_name=display_name or normalized_email.split("@")[0],
+        is_admin=is_first or normalized_email in admin_emails,
+        auth_provider=provider,
+        external_subject=subject,
+    )
+    db.add(user)
+    db.flush()
 
     cfg = UserConfig(user_id=user.id, config_json=json.dumps(_DEFAULT_CONFIG))
     db.add(cfg)

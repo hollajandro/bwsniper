@@ -46,6 +46,39 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24h
 REFRESH_TOKEN_EXPIRE = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
+# ── Authentication mode ──────────────────────────────────────────────────────
+# internal   = existing BwSniper email/password auth only
+# hybrid     = Cloudflare Access session bridge plus internal fallback
+# cloudflare = Cloudflare Access session bridge only
+AUTH_MODE: str = os.getenv("AUTH_MODE", "internal").strip().lower()
+if AUTH_MODE not in {"internal", "hybrid", "cloudflare"}:
+    raise RuntimeError("AUTH_MODE must be one of: internal, hybrid, cloudflare")
+
+CLOUDFLARE_ACCESS_TEAM_DOMAIN: str = os.getenv(
+    "CLOUDFLARE_ACCESS_TEAM_DOMAIN", ""
+).rstrip("/")
+CLOUDFLARE_ACCESS_AUD: str = os.getenv("CLOUDFLARE_ACCESS_AUD", "").strip()
+_cloudflare_default_issuer = CLOUDFLARE_ACCESS_TEAM_DOMAIN
+CLOUDFLARE_ACCESS_ISSUER: str = (
+    os.getenv("CLOUDFLARE_ACCESS_ISSUER") or _cloudflare_default_issuer
+).rstrip("/")
+_cloudflare_default_jwks_url = (
+    f"{CLOUDFLARE_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs"
+    if CLOUDFLARE_ACCESS_TEAM_DOMAIN
+    else ""
+)
+CLOUDFLARE_ACCESS_JWKS_URL: str = (
+    os.getenv("CLOUDFLARE_ACCESS_JWKS_URL") or _cloudflare_default_jwks_url
+)
+CLOUDFLARE_ACCESS_AUTO_CREATE_USERS: bool = os.getenv(
+    "CLOUDFLARE_ACCESS_AUTO_CREATE_USERS", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
+CLOUDFLARE_ACCESS_ADMIN_EMAILS: set[str] = {
+    email.strip().lower()
+    for email in os.getenv("CLOUDFLARE_ACCESS_ADMIN_EMAILS", "").split(",")
+    if email.strip()
+}
+
 # ── CORS ─────────────────────────────────────────────────────────────────────
 # Comma-separated list of allowed origins.  Override via CORS_ORIGINS env var.
 CORS_ORIGINS: list[str] = [

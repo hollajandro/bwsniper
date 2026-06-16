@@ -12,17 +12,33 @@ import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
-from ..config import REFRESH_TOKEN_EXPIRE
+from ..config import (
+    AUTH_MODE,
+    CLOUDFLARE_ACCESS_ADMIN_EMAILS,
+    CLOUDFLARE_ACCESS_AUTO_CREATE_USERS,
+    REFRESH_TOKEN_EXPIRE,
+)
 from ..db.database import get_db
 from ..db.models import RefreshToken, User
 from ..db.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
 from ..dependencies import get_current_user
-from ..services.auth_service import authenticate_user, get_user_by_id, register_user
+from ..services.auth_service import (
+    authenticate_user,
+    get_or_create_external_user,
+    get_user_by_id,
+    register_user,
+)
+from ..services.cloudflare_access import (
+    CloudflareAccessConfigError,
+    CloudflareAccessTokenError,
+    cloudflare_access_configured,
+    validate_cloudflare_access_jwt,
+)
 from ..utils.jwt_utils import create_access_token, create_refresh_token, decode_token
 
 logger = logging.getLogger(__name__)
@@ -32,6 +48,14 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _internal_auth_enabled() -> bool:
+    return AUTH_MODE in {"internal", "hybrid"}
+
+
+def _cloudflare_auth_enabled() -> bool:
+    return AUTH_MODE in {"hybrid", "cloudflare"}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,6 +116,11 @@ def _issue_token_pair(db: Session, user: User) -> TokenResponse:
 @router.post("/register", response_model=TokenResponse)
 @limiter.limit("10/minute")
 def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
+    if not _internal_auth_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal registration is disabled.",
+        )
     try:
         user = register_user(db, req.email, req.password, req.display_name)
     except ValueError as ex:
@@ -102,12 +131,79 @@ def register(request: Request, req: RegisterRequest, db: Session = Depends(get_d
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("20/minute")
 def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
+    if not _internal_auth_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal password login is disabled.",
+        )
     user = authenticate_user(db, req.email, req.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
+    return _issue_token_pair(db, user)
+
+
+@router.get("/config")
+def auth_config():
+    return {
+        "auth_mode": AUTH_MODE,
+        "internal_auth_enabled": _internal_auth_enabled(),
+        "cloudflare_auth_enabled": _cloudflare_auth_enabled(),
+        "cloudflare_access_configured": cloudflare_access_configured(),
+    }
+
+
+@router.post("/cloudflare/session", response_model=TokenResponse)
+@limiter.limit("30/minute")
+def cloudflare_session(
+    request: Request,
+    cf_access_jwt_assertion: str | None = Header(
+        default=None,
+        alias="Cf-Access-Jwt-Assertion",
+    ),
+    db: Session = Depends(get_db),
+):
+    if not _cloudflare_auth_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cloudflare Access auth is not enabled.",
+        )
+    if not cf_access_jwt_assertion:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Cloudflare Access identity token.",
+        )
+
+    try:
+        identity = validate_cloudflare_access_jwt(cf_access_jwt_assertion)
+        user = get_or_create_external_user(
+            db,
+            provider="cloudflare_access",
+            subject=identity.subject,
+            email=identity.email,
+            display_name=identity.name,
+            auto_create=CLOUDFLARE_ACCESS_AUTO_CREATE_USERS,
+            admin_emails=CLOUDFLARE_ACCESS_ADMIN_EMAILS,
+        )
+    except CloudflareAccessConfigError as ex:
+        logger.error("Cloudflare Access auth is misconfigured: %s", ex)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(ex),
+        )
+    except CloudflareAccessTokenError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(ex),
+        )
+    except ValueError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(ex),
+        )
+
     return _issue_token_pair(db, user)
 
 

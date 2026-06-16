@@ -73,6 +73,45 @@ const IMG_MAXH = { small: 'max-h-20',  medium: 'max-h-28', large: 'max-h-[21rem]
 // Tab identifiers — single source of truth to avoid stringly-typed comparisons
 const TABS = /** @type {const} */ ({ LIVE: 'live', ENDED: 'ended', RECENT: 'recent' })
 
+function auctionIdentity(auction) {
+  return auction?.id
+    || auction?.handle
+    || auction?.auctionId
+    || auction?.auction_id
+    || auction?.item?.id
+    || auction?.item?.handle
+    || auction?.url
+    || null
+}
+
+export function uniqueAuctions(auctions = []) {
+  const seen = new Set()
+  const unique = []
+  for (const auction of auctions) {
+    const key = auctionIdentity(auction)
+    if (key) {
+      if (seen.has(key)) continue
+      seen.add(key)
+    }
+    unique.push(auction)
+  }
+  return unique
+}
+
+export function appendUniqueAuctions(current = [], incoming = []) {
+  const seen = new Set(current.map(auctionIdentity).filter(Boolean))
+  const merged = [...current]
+  for (const auction of incoming) {
+    const key = auctionIdentity(auction)
+    if (key) {
+      if (seen.has(key)) continue
+      seen.add(key)
+    }
+    merged.push(auction)
+  }
+  return merged
+}
+
 // ─── Condition color map (Feature 11) ────────────────────────────────────────
 const CONDITION_COLORS = {
   New:            'bg-green-700 text-green-100',
@@ -1462,7 +1501,7 @@ export default function Browse() {
       const res = await post('/auctions/search', buildBody(1))
       if (res.ok) {
         const data = await res.json()
-        setItems(data.items || [])
+        setItems(uniqueAuctions(data.items || []))
         setHasMore((data.totalPages || 1) > 1)
       }
     } finally {
@@ -1482,7 +1521,7 @@ export default function Browse() {
       const res = await post('/auctions/search', buildBody(nextPage))
       if (res.ok) {
         const data = await res.json()
-        setItems(prev => [...prev, ...(data.items || [])])
+        setItems(prev => appendUniqueAuctions(prev, data.items || []))
         pageRef.current = nextPage
         setHasMore(nextPage < (data.totalPages || 1))
       }

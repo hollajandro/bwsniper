@@ -1,0 +1,11 @@
+# Optional direct backend API exposure.
+#
+# Use only when you intentionally need host access to the FastAPI backend:
+#   docker compose -f docker-compose.yml -f docker-compose.api.yml up -d
+#
+# The default bind is localhost to avoid publishing the API broadly.
+
+services:
+  backend:
+    ports:
+      - "${API_BIND_IP:-127.0.0.1}:${API_PORT:-8000}:8000"

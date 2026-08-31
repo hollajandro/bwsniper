@@ -144,8 +144,16 @@ docker compose logs -f backend
 
 Access the application:
 - **Frontend**: http://localhost
-- **API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **API**: proxied through the frontend at http://localhost/api
+
+Direct backend access on port 8000 is disabled by default. To publish it for
+local debugging only:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.api.yml up -d
+```
+
+Then API docs are available at http://localhost:8000/docs.
 
 ## Troubleshooting
 

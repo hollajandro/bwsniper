@@ -3,7 +3,12 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from app.services.buywander_api import fetch_active_auctions, fetch_cart_and_visits
+from app.services.buywander_api import (
+    bw_login,
+    fetch_active_auctions,
+    fetch_cart_and_visits,
+    validate_session,
+)
 
 
 class FakeSession:
@@ -13,6 +18,10 @@ class FakeSession:
 
     def post(self, url, json, timeout):
         self.calls.append({"url": url, "json": json, "timeout": timeout})
+        return self._responses.pop(0)
+
+    def get(self, url, timeout):
+        self.calls.append({"url": url, "timeout": timeout})
         return self._responses.pop(0)
 
 
@@ -30,6 +39,36 @@ def make_response(status_code, payload=None, body=""):
         json=lambda: payload if payload is not None else {},
         raise_for_status=raise_for_status,
     )
+
+
+def test_bw_login_uses_current_versioned_auth_endpoint():
+    session = FakeSession([make_response(200, payload={"isSuccess": True})])
+
+    result = bw_login(session, "user@example.com", "password")
+
+    assert result == {"isSuccess": True}
+    assert session.calls == [
+        {
+            "url": "https://api.buywander.com/api/site/v1/ShopifyAuth/login",
+            "json": {"email": "user@example.com", "password": "password"},
+            "timeout": 10,
+        }
+    ]
+
+
+def test_validate_session_uses_current_versioned_customer_endpoint():
+    customer = {"id": "customer-1", "displayName": "Test User"}
+    session = FakeSession([make_response(200, payload=customer)])
+
+    result = validate_session(session)
+
+    assert result == customer
+    assert session.calls == [
+        {
+            "url": "https://api.buywander.com/api/site/v1/Customers/me",
+            "timeout": 8,
+        }
+    ]
 
 
 def test_fetch_active_auctions_normalizes_legacy_newly_listed_sort_alias():

@@ -20,6 +20,7 @@ from ..config import BW_API_BASE, BW_SITE_BASE, BW_SESSION_HEADERS, BROWSE_PAGE_
 from ..utils.crypto import decrypt
 
 log = logging.getLogger(__name__)
+BW_SITE_API_BASE = f"{BW_API_BASE}/api/site/v1"
 
 # Allowlists for filter parameters to prevent injection into BuyWander API
 ALLOWED_CONDITIONS = frozenset(
@@ -99,7 +100,7 @@ def serialise_cookies(session: _requests.Session) -> str:
 def validate_session(session: _requests.Session) -> Optional[dict]:
     """Return customer dict if the BW session is valid, else None."""
     try:
-        r = session.get(f"{BW_API_BASE}/api/site/Customers/me", timeout=8)
+        r = session.get(f"{BW_SITE_API_BASE}/Customers/me", timeout=8)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -110,7 +111,7 @@ def validate_session(session: _requests.Session) -> Optional[dict]:
 def bw_login(session: _requests.Session, email: str, password: str) -> dict:
     """Authenticate with BuyWander.  Raises ValueError on failure."""
     r = session.post(
-        f"{BW_API_BASE}/api/site/ShopifyAuth/login",
+        f"{BW_SITE_API_BASE}/ShopifyAuth/login",
         json={"email": email, "password": password},
         timeout=10,
     )
@@ -162,10 +163,10 @@ def fmt_time(secs: float) -> str:
 def get_auction(session: _requests.Session, handle: str) -> dict:
     if is_uuid(handle):
         r = session.get(
-            f"{BW_API_BASE}/api/site/Auctions/by-auction/{handle}", timeout=10
+            f"{BW_SITE_API_BASE}/Auctions/by-auction/{handle}", timeout=10
         )
     else:
-        r = session.get(f"{BW_API_BASE}/api/site/Auctions/{handle}", timeout=10)
+        r = session.get(f"{BW_SITE_API_BASE}/Auctions/{handle}", timeout=10)
     if r.status_code == 404:
         raise ValueError(f"Auction not found: '{handle}'")
     r.raise_for_status()
@@ -176,7 +177,7 @@ def place_bid(
     session: _requests.Session, auction_id: str, customer_id: str, amount: float
 ) -> dict:
     r = session.post(
-        f"{BW_API_BASE}/api/site/Auctions/{auction_id}/bid",
+        f"{BW_SITE_API_BASE}/Auctions/{auction_id}/bid",
         json={"auctionId": auction_id, "customerId": customer_id, "amount": amount},
         timeout=10,
     )
@@ -195,7 +196,7 @@ def fetch_won_auctions(session: _requests.Session, customer_id: str) -> list:
     page, page_size = 1, 50
     while True:
         r = session.post(
-            f"{BW_API_BASE}/api/site/Auctions/my-auctions",
+            f"{BW_SITE_API_BASE}/Auctions/my-auctions",
             json={
                 "filter": "Won",
                 "pageNumber": page,
@@ -290,7 +291,7 @@ def fetch_active_auctions(
     log.debug("Fetching auctions with payload: %s", payload)
 
     r = session.post(
-        f"{BW_API_BASE}/api/site/Auctions/search",
+        f"{BW_SITE_API_BASE}/Auctions/search",
         json=payload,
         timeout=15,
     )
@@ -303,7 +304,7 @@ def fetch_active_auctions(
             fallback_sort,
         )
         r = session.post(
-            f"{BW_API_BASE}/api/site/Auctions/search",
+            f"{BW_SITE_API_BASE}/Auctions/search",
             json=fallback_payload,
             timeout=15,
         )
@@ -323,7 +324,7 @@ def fetch_active_auctions(
 
 
 def fetch_store_locations(session: _requests.Session) -> list:
-    r = session.get(f"{BW_API_BASE}/api/site/StoreLocations", timeout=10)
+    r = session.get(f"{BW_SITE_API_BASE}/StoreLocations", timeout=10)
     r.raise_for_status()
     return r.json()
 
@@ -335,7 +336,7 @@ def fetch_cart_and_visits(
     session: _requests.Session, customer_id: str, store_location_id: str
 ) -> dict:
     r = session.post(
-        f"{BW_API_BASE}/api/site/customers/paidItemsAndVisit",
+        f"{BW_SITE_API_BASE}/customers/paidItemsAndVisit",
         json={
             "storeLocationId": store_location_id,
             "customerId": customer_id,
@@ -374,7 +375,7 @@ def _filter_paid_items_awaiting_pickup(data: dict) -> dict:
 
 def fetch_reserved_auctions(session: _requests.Session, customer_id: str) -> list:
     r = session.post(
-        f"{BW_API_BASE}/api/site/Auctions/my-auctions",
+        f"{BW_SITE_API_BASE}/Auctions/my-auctions",
         json={
             "filter": "Reserved",
             "pageNumber": 1,
@@ -388,7 +389,7 @@ def fetch_reserved_auctions(session: _requests.Session, customer_id: str) -> lis
 
 
 def fetch_payment_methods(session: _requests.Session) -> list:
-    r = session.get(f"{BW_API_BASE}/api/site/Customers/payment-methods", timeout=10)
+    r = session.get(f"{BW_SITE_API_BASE}/Customers/payment-methods", timeout=10)
     r.raise_for_status()
     data = r.json()
     if isinstance(data, list):
@@ -403,7 +404,7 @@ def fetch_open_slots(
     if customer_id:
         params["CustomerId"] = customer_id
     r = session.get(
-        f"{BW_API_BASE}/api/site/Visits/openslots",
+        f"{BW_SITE_API_BASE}/Visits/openslots",
         params=params,
         timeout=10,
     )
@@ -413,7 +414,7 @@ def fetch_open_slots(
 
 def fetch_removal_status(session: _requests.Session, store_location_id: str) -> dict:
     r = session.get(
-        f"{BW_API_BASE}/api/site/Customers/{store_location_id}/checkAuctionRemovalStatus",
+        f"{BW_SITE_API_BASE}/Customers/{store_location_id}/checkAuctionRemovalStatus",
         timeout=10,
     )
     r.raise_for_status()
@@ -452,9 +453,9 @@ def fetch_stripe_publishable_key(session: _requests.Session) -> Optional[str]:
 
     # ── Strategy 1: API config endpoints ────────────────────────────────────
     config_paths = [
-        "/api/site/config",
-        "/api/site/stripe/config",
-        "/api/site/Customers/stripe-config",
+        "/api/site/v1/config",
+        "/api/site/v1/stripe/config",
+        "/api/site/v1/Customers/stripe-config",
         "/api/config",
     ]
     for path in config_paths:
@@ -550,7 +551,7 @@ def do_pay_checkout(
         "paymentIntentRecordId": None,
     }
     r1 = session.post(
-        f"{BW_API_BASE}/api/site/Customers/checkout/pay",
+        f"{BW_SITE_API_BASE}/Customers/checkout/pay",
         json=payload1,
         timeout=20,
     )
@@ -641,7 +642,7 @@ def do_create_appointment(
 ) -> dict:
     # BuyWander Visits/create uses query params, not a JSON body
     r = session.post(
-        f"{BW_API_BASE}/api/site/Visits/create",
+        f"{BW_SITE_API_BASE}/Visits/create",
         params={
             "VisitDate": _to_utc_z(slot_date_iso),
             "StoreLocationId": location_id,
@@ -658,7 +659,7 @@ def _update_visit(
     session: _requests.Session, visit_id: str, date_iso: str, cancelled: bool
 ) -> dict:
     r = session.post(
-        f"{BW_API_BASE}/api/site/Visits/update",
+        f"{BW_SITE_API_BASE}/Visits/update",
         params={
             "VisitId": visit_id,
             "VisitDate": _to_utc_z(date_iso),
@@ -689,7 +690,7 @@ def do_remove_from_cart(
     notes: str = "No reason provided",
 ) -> bool:
     r = session.post(
-        f"{BW_API_BASE}/api/site/Auctions/removeItemFromCart",
+        f"{BW_SITE_API_BASE}/Auctions/removeItemFromCart",
         json={"auctionId": auction_id, "removeReason": reason, "notes": notes},
         timeout=15,
     )

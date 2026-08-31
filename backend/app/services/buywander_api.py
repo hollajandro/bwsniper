@@ -38,7 +38,18 @@ ALLOWED_CONDITIONS = frozenset(
         "MixedCondition",
     }
 )
-ALLOWED_AUCTION_FILTERS = frozenset({"BuyNow", "NoReserve", "HasBids", "Featured"})
+ALLOWED_AUCTION_FILTERS = frozenset(
+    {
+        "ThreeDollarsOrLess",
+        "Over90PercentOff",
+        "ForYou",
+        "Featured",
+        "Hottest",
+        "EndsToday",
+        "EndsTomorrow",
+        "NoBidsYet",
+    }
+)
 ALLOWED_SORT = frozenset(
     {
         "EndingSoonest",
@@ -241,11 +252,15 @@ def fetch_active_auctions(
     session: _requests.Session,
     page: int = 1,
     page_size: int = BROWSE_PAGE_SIZE,
+    search_after: list[str | int | float | bool | None] | None = None,
+    search_id: str | None = None,
     sort_by: str = "EndingSoonest",
     search: str = "",
     conditions: list | None = None,
     categories: list | None = None,
-    auction_filters: list | None = None,
+    auction_filter: str | None = None,
+    watching: bool = False,
+    customer_id: str = "",
     store_location_ids: list | None = None,
     min_retail_price: float | None = None,
     max_retail_price: float | None = None,
@@ -257,8 +272,8 @@ def fetch_active_auctions(
     # Sanitize filter inputs against allowlists
     if conditions:
         conditions = [c for c in conditions if c in ALLOWED_CONDITIONS]
-    if auction_filters:
-        auction_filters = [f for f in auction_filters if f in ALLOWED_AUCTION_FILTERS]
+    if auction_filter not in ALLOWED_AUCTION_FILTERS:
+        auction_filter = None
     sort_by = SORT_ALIASES.get(sort_by, sort_by)
 
     if sort_by not in ALLOWED_SORT:
@@ -272,13 +287,21 @@ def fetch_active_auctions(
         "search": search or "",
         "conditions": conditions or [],
         "categories": categories or [],  # categories are free-form from BW
-        "auctionFilters": auction_filters or [],
         "myAuctions": False,
         "winning": False,
         "losing": False,
         "watching": False,
         "additionalCategories": [],
     }
+    if auction_filter:
+        payload["filter"] = auction_filter
+    if watching:
+        payload["filter"] = "Watching"
+        payload["customerId"] = customer_id
+    if search_after is not None:
+        payload["searchAfter"] = search_after
+    if search_id:
+        payload["searchId"] = search_id
     # Only include storeLocationIds if provided (empty list returns no results)
     if store_location_ids:
         payload["storeLocationIds"] = store_location_ids
@@ -290,10 +313,9 @@ def fetch_active_auctions(
 
     log.debug("Fetching auctions with payload: %s", payload)
 
+    endpoint = "my-auctions" if watching else "search"
     r = session.post(
-        f"{BW_SITE_API_BASE}/Auctions/search",
-        json=payload,
-        timeout=15,
+        f"{BW_SITE_API_BASE}/Auctions/{endpoint}", json=payload, timeout=15
     )
     if not r.ok and r.status_code == 400 and sort_by in SORT_FALLBACKS:
         fallback_sort = SORT_FALLBACKS[sort_by]
@@ -304,7 +326,7 @@ def fetch_active_auctions(
             fallback_sort,
         )
         r = session.post(
-            f"{BW_SITE_API_BASE}/Auctions/search",
+            f"{BW_SITE_API_BASE}/Auctions/{endpoint}",
             json=fallback_payload,
             timeout=15,
         )

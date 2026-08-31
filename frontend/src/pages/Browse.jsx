@@ -73,15 +73,33 @@ const IMG_MAXH = { small: 'max-h-20',  medium: 'max-h-28', large: 'max-h-[21rem]
 // Tab identifiers — single source of truth to avoid stringly-typed comparisons
 const TABS = /** @type {const} */ ({ LIVE: 'live', ENDED: 'ended', RECENT: 'recent' })
 
+export function auctionIdentityKeys(auction) {
+  return [
+    auction?.id,
+    auction?.handle,
+    auction?.auctionId,
+    auction?.auction_id,
+    auction?.auction_uuid,
+    auction?.item?.id,
+    auction?.item?.handle,
+    auction?.url,
+  ].filter((value, index, values) => value && values.indexOf(value) === index)
+}
+
 function auctionIdentity(auction) {
-  return auction?.id
-    || auction?.handle
-    || auction?.auctionId
-    || auction?.auction_id
-    || auction?.item?.id
-    || auction?.item?.handle
-    || auction?.url
-    || null
+  return auctionIdentityKeys(auction)[0] || null
+}
+
+export function auctionMatchesKeys(auction, keys) {
+  return auctionIdentityKeys(auction).some(key => keys.has(key))
+}
+
+function mappedAuctionValue(map, auction) {
+  for (const key of auctionIdentityKeys(auction)) {
+    const value = map.get(key)
+    if (value) return value
+  }
+  return null
 }
 
 export function uniqueAuctions(auctions = []) {
@@ -110,6 +128,18 @@ export function appendUniqueAuctions(current = [], incoming = []) {
     merged.push(auction)
   }
   return merged
+}
+
+export function hasMoreAuctionResults(data, page) {
+  if (typeof data?.hasNextPage === 'boolean') return data.hasNextPage
+  return page < (data?.totalPages || 1)
+}
+
+export function auctionSearchCursor(data) {
+  return {
+    searchAfter: Array.isArray(data?.nextSearchAfter) ? data.nextSearchAfter : null,
+    searchId: typeof data?.searchId === 'string' && data.searchId ? data.searchId : null,
+  }
 }
 
 // ─── Condition color map (Feature 11) ────────────────────────────────────────
@@ -144,8 +174,8 @@ function BidCountBadge({ count }) {
   return <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-900/70 text-yellow-300 font-medium">↑ Active</span>
 }
 
-// Quick filters are applied client-side (BW API ignores auctionFilters).
-// 'Sniped' is also client-side — shows only items you have a snipe for.
+// Supported catalog filters are sent upstream and also checked client-side.
+// Sniped uses locally hydrated auction details; Watched uses my-auctions.
 const QUICK_FILTERS = [
   { value: 'Sniped',             label: 'Sniped' },
   { value: 'Watched',            label: 'Watched' },
@@ -156,14 +186,37 @@ const QUICK_FILTERS = [
   { value: 'Over90PercentOff',   label: '90%+ Off' },
 ]
 
+const SERVER_FILTER_PRIORITY = [
+  'EndsToday',
+  'EndsTomorrow',
+  'NoBidsYet',
+  'ThreeDollarsOrLess',
+  'Over90PercentOff',
+]
+
+export function serverAuctionFilter(filters = []) {
+  return SERVER_FILTER_PRIORITY.find(filter => filters.includes(filter)) || null
+}
+
+export function endsOnLocalDay(auction, dayOffset, now = Date.now()) {
+  const endTime = new Date(auction?.endDate).getTime()
+  if (!Number.isFinite(endTime)) return false
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  start.setDate(start.getDate() + dayOffset)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  return endTime >= start.getTime() && endTime < end.getTime()
+}
+
 // Predicate per quick-filter value. Receives (auction, snipesMap, watchlist).
 const QUICK_FILTER_FNS = {
-  Sniped:             (a, sm)     => sm.has(a.id) || sm.has(a.handle),
-  Watched:            (a, sm, wl) => wl.has(a.handle) || wl.has(a.id),
+  Sniped:             (a, sm)     => auctionMatchesKeys(a, sm),
+  Watched:            (a, sm, wl) => auctionMatchesKeys(a, wl),
   NoBidsYet:          (a)         => !(a.winningBid?.amount > 0),
   ThreeDollarsOrLess: (a)         => (a.winningBid?.amount ?? 0) <= 3,
-  EndsToday:          (a)         => { const s = (new Date(a.endDate).getTime() - Date.now()) / 1000; return s >= 0 && s < 86400 },
-  EndsTomorrow:       (a)         => { const s = (new Date(a.endDate).getTime() - Date.now()) / 1000; return s >= 86400 && s < 172800 },
+  EndsToday:          (a)         => endsOnLocalDay(a, 0),
+  EndsTomorrow:       (a)         => endsOnLocalDay(a, 1),
   Over90PercentOff:   (a)         => { const r = a.item?.price ?? 0; const b = a.winningBid?.amount ?? 0; return r > 0 && (r - b) / r >= 0.9 },
 }
 
@@ -175,6 +228,24 @@ function getItemImage(item) {
     || (Array.isArray(item.images) && item.images.length && (item.images[0]?.url || item.images[0]))
     || (Array.isArray(item.photos) && item.photos.length && (item.photos[0]?.url || item.photos[0]))
     || null
+}
+
+export function recentAuctionSummary(auction) {
+  const item = auction?.item || {}
+  return {
+    id: auction?.id,
+    handle: auction?.handle || item.handle,
+    endDate: auction?.endDate,
+    url: auction?.url,
+    item: {
+      title: item.title,
+      price: item.price,
+      condition: item.condition,
+      imageUrl: getItemImage(item),
+      handle: item.handle,
+    },
+    winningBid: auction?.winningBid ? { amount: auction.winningBid.amount } : null,
+  }
 }
 
 function textValue(value) {
@@ -1127,6 +1198,7 @@ export default function Browse() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore]       = useState(false)
   const pageRef    = useRef(1)
+  const searchCursorRef = useRef({ searchAfter: null, searchId: null })
   const sentinelRef  = useRef(null)
   const scrollerRef  = useRef(null)
   const priceCache = useRef({})  // auctionId → priceData, persists across modal open/close
@@ -1152,6 +1224,7 @@ export default function Browse() {
   const [recentlyViewed, setRecentlyViewed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(LS_RECENTLY) || '[]') } catch { return [] }
   })
+  const [recentDetailItems, setRecentDetailItems] = useState([])
 
   // Ended-auctions cache — persisted to localStorage, pruned to 7 days
   const [endedCache, setEndedCache] = useState(() => {
@@ -1218,17 +1291,83 @@ export default function Browse() {
   }, [watchlistItems])
 
   const watchedMode = quickFilters.includes('Watched')
+  const snipedMode = quickFilters.includes('Sniped')
+
+  const effectiveWatchlist = useMemo(() => {
+    const keys = new Set(watchlist)
+    if (watchedMode) {
+      for (const auction of items) {
+        for (const key of auctionIdentityKeys(auction)) keys.add(key)
+      }
+    }
+    return keys
+  }, [items, watchedMode, watchlist])
 
   // Snipes
   const [snipes, setSnipes] = useState([])
+  const [snipedAuctionItems, setSnipedAuctionItems] = useState([])
   const snipesMap = useMemo(() => {
     const m = new Map()
     for (const s of snipes) {
       if (s.auction_uuid) m.set(s.auction_uuid, s)
       if (s.handle) m.set(s.handle, s)
+      if (s.url) m.set(s.url, s)
     }
     return m
   }, [snipes])
+  const snipedAuctionIds = useMemo(() => (
+    [...new Set(snipes.map(s => s.auction_uuid || s.handle).filter(Boolean))]
+  ), [snipes])
+  const snipedAuctionIdsKey = snipedAuctionIds.join(',')
+
+  useEffect(() => {
+    if (!loginId || !snipedAuctionIds.length) {
+      setSnipedAuctionItems([])
+      return undefined
+    }
+    let cancelled = false
+    Promise.all(snipedAuctionIds.map(async auctionId => {
+      const response = await get(`/auctions/${encodeURIComponent(auctionId)}?login_id=${encodeURIComponent(loginId)}`)
+      return response.ok ? response.json() : null
+    })).then(results => {
+      if (!cancelled) setSnipedAuctionItems(uniqueAuctions(results.filter(Boolean)))
+    })
+    return () => { cancelled = true }
+  }, [get, loginId, snipedAuctionIdsKey])
+
+  const recentIdsMissingImages = useMemo(() => {
+    const hydratedKeys = new Set(recentDetailItems.flatMap(auctionIdentityKeys))
+    return recentlyViewed
+      .filter(auction => !getItemImage(auction.item) && !auctionMatchesKeys(auction, hydratedKeys))
+      .map(auctionIdentity)
+      .filter(Boolean)
+  }, [recentDetailItems, recentlyViewed])
+  const recentIdsMissingImagesKey = recentIdsMissingImages.join(',')
+
+  useEffect(() => {
+    if (activeTab !== TABS.RECENT || !loginId || !recentIdsMissingImages.length) {
+      return undefined
+    }
+    let cancelled = false
+    let nextIndex = 0
+    const hydrated = []
+    async function worker() {
+      while (!cancelled && nextIndex < recentIdsMissingImages.length) {
+        const auctionId = recentIdsMissingImages[nextIndex++]
+        try {
+          const response = await get(`/auctions/${encodeURIComponent(auctionId)}?login_id=${encodeURIComponent(loginId)}`)
+          if (response.ok) hydrated.push(await response.json())
+        } catch {
+          // Keep the saved summary when an old auction can no longer be fetched.
+        }
+      }
+    }
+    const workerCount = Math.min(4, recentIdsMissingImages.length)
+    Promise.all(Array.from({ length: workerCount }, () => worker())).then(() => {
+      if (!cancelled) setRecentDetailItems(uniqueAuctions(hydrated))
+    })
+    return () => { cancelled = true }
+  }, [activeTab, get, loginId, recentIdsMissingImagesKey])
 
   // Feature 3: Live WebSocket snipe status updates
   const handleWS = useCallback((msg) => {
@@ -1249,29 +1388,34 @@ export default function Browse() {
 
   // Feature 10: Record a recently viewed auction (stores lightweight summary)
   const recordView = useCallback((auction) => {
-    // Extract minimal data to avoid storing bloated auction objects in localStorage
-    const summary = {
-      id:         auction.id,
-      handle:     auction.handle,
-      endDate:    auction.endDate,
-      url:        auction.url,
-      item: {
-        title:     auction.item?.title,
-        price:     auction.item?.price,
-        condition: auction.item?.condition,
-        imageUrl:  auction.item?.imageUrl || auction.item?.thumbnailUrl || auction.item?.thumbnail,
-        handle:    auction.item?.handle,
-      },
-      winningBid: auction.winningBid ? { amount: auction.winningBid.amount } : null,
-    }
+    const summary = recentAuctionSummary(auction)
     setRecentlyViewed(prev => {
-      if (prev[0]?.id === summary.id) return prev  // already most-recent, skip write
       const filtered = prev.filter(a => a.id !== summary.id)
       const next = [summary, ...filtered].slice(0, 50)
       try { localStorage.setItem(LS_RECENTLY, JSON.stringify(next)) } catch {}
       return next
     })
   }, [])
+
+  const recentDisplayItems = useMemo(() => {
+    const cache = new Map()
+    for (const auction of [...items, ...watchedCacheItems, ...snipedAuctionItems, ...recentDetailItems]) {
+      for (const key of auctionIdentityKeys(auction)) cache.set(key, auction)
+    }
+    return recentlyViewed.map(recent => {
+      const source = auctionIdentityKeys(recent).map(key => cache.get(key)).find(Boolean)
+      if (!source) return recent
+      return {
+        ...source,
+        ...recent,
+        item: {
+          ...(source.item || {}),
+          ...(recent.item || {}),
+          imageUrl: getItemImage(recent.item) || getItemImage(source.item),
+        },
+      }
+    })
+  }, [items, recentlyViewed, recentDetailItems, snipedAuctionItems, watchedCacheItems])
 
   function reloadSnipes(lid = loginId) {
     if (!lid) return
@@ -1395,22 +1539,29 @@ export default function Browse() {
 
   // ── Parse quoted phrases from search input ────────────────────────────────
   const { apiQuery, exactPhrases } = useMemo(() => parseSearchPhrases(debouncedSearch), [debouncedSearch])
+  const upstreamAuctionFilter = useMemo(() => serverAuctionFilter(quickFilters), [quickFilters])
 
   // ── Build search body from current filters ────────────────────────────────
-  const buildBody = useCallback((pg) => ({
+  const buildBody = useCallback((pg, cursor = {}) => ({
     login_id:           loginId,
     page:               pg,
+    search_after:       cursor.searchAfter || null,
+    search_id:          cursor.searchId || null,
     sort_by:            sortBy,
     search:             apiQuery,  // quotes stripped; phrase filtering is client-side
     conditions,
+    auction_filter:     upstreamAuctionFilter,
+    watching:           watchedMode,
     store_location_ids: selectedLocations,
     min_retail_price:   minPrice ? parseFloat(minPrice) : null,
     max_retail_price:   maxPrice ? parseFloat(maxPrice) : null,
-  }), [loginId, sortBy, apiQuery, conditions, selectedLocations, minPrice, maxPrice])
+  }), [loginId, sortBy, apiQuery, conditions, upstreamAuctionFilter, watchedMode, selectedLocations, minPrice, maxPrice])
 
   // Apply quick filters + exact phrase filter client-side
   const filteredItems = useMemo(() => {
-    let result = watchedMode ? watchedCacheItems : items
+    let result = items
+    if (watchedMode) result = appendUniqueAuctions(result, watchedCacheItems)
+    if (snipedMode) result = appendUniqueAuctions(result, snipedAuctionItems)
     // Enforce quoted phrases: title must contain each phrase as a substring
     if (exactPhrases.length) {
       result = result.filter(a => {
@@ -1435,12 +1586,11 @@ export default function Browse() {
     if (!quickFilters.length) return result
     return result.filter(a =>
       quickFilters.every(f => {
-        if (f === 'Watched' && watchedMode) return true
         const fn = QUICK_FILTER_FNS[f]
-        return fn ? fn(a, snipesMap, watchlist) : true
+        return fn ? fn(a, snipesMap, effectiveWatchlist) : true
       })
     )
-  }, [items, watchedMode, watchedCacheItems, quickFilters, snipesMap, watchlist, exactPhrases, conditions, selectedLocations, minPrice, maxPrice])
+  }, [items, watchedMode, watchedCacheItems, snipedMode, snipedAuctionItems, quickFilters, snipesMap, effectiveWatchlist, exactPhrases, conditions, selectedLocations, minPrice, maxPrice])
 
   // ── Maintain stable live list with scroll preservation on item removal ────
   useEffect(() => {
@@ -1490,11 +1640,7 @@ export default function Browse() {
   const fetchAuctions = useCallback(async () => {
     if (!loginId) return
     pageRef.current = 1
-    if (watchedMode) {
-      setLoading(false)
-      setHasMore(false)
-      return
-    }
+    searchCursorRef.current = { searchAfter: null, searchId: null }
     setLoading(true)
     setHasMore(false)
     try {
@@ -1502,7 +1648,8 @@ export default function Browse() {
       if (res.ok) {
         const data = await res.json()
         setItems(uniqueAuctions(data.items || []))
-        setHasMore((data.totalPages || 1) > 1)
+        searchCursorRef.current = auctionSearchCursor(data)
+        setHasMore(hasMoreAuctionResults(data, 1))
       }
     } finally {
       setLoading(false)
@@ -1513,17 +1660,18 @@ export default function Browse() {
 
   // ── Load next page, append items (triggered by scroll sentinel) ───────────
   const loadMore = useCallback(async () => {
-    if (watchedMode) return
     if (!hasMore || loading || loadingMore) return
     const nextPage = pageRef.current + 1
+    const cursor = searchCursorRef.current
     setLoadingMore(true)
     try {
-      const res = await post('/auctions/search', buildBody(nextPage))
+      const res = await post('/auctions/search', buildBody(nextPage, cursor))
       if (res.ok) {
         const data = await res.json()
         setItems(prev => appendUniqueAuctions(prev, data.items || []))
         pageRef.current = nextPage
-        setHasMore(nextPage < (data.totalPages || 1))
+        searchCursorRef.current = auctionSearchCursor(data)
+        setHasMore(hasMoreAuctionResults(data, nextPage))
       }
     } finally {
       setLoadingMore(false)
@@ -1560,7 +1708,6 @@ export default function Browse() {
   }, [quickFilters, conditions, sortBy, search, selectedLocations])
 
   useEffect(() => {
-    if (watchedMode) return
     if (!hasMore || loading || loadingMore) return
     if (autoLoadCountRef.current >= 10) {
       setCapReached(true)
@@ -1909,7 +2056,7 @@ export default function Browse() {
                         </tr>
                       </thead>
                       <tbody>
-                        {recentlyViewed.map((ra, idx) => {
+                        {recentDisplayItems.map((ra, idx) => {
                           const item   = ra.item || {}
                           const wb     = ra.winningBid || {}
                           const imgUrl = getItemImage(item)
@@ -1931,7 +2078,7 @@ export default function Browse() {
                       </tbody>
                     </table>
                   )}
-                  {layout !== 'list' && recentlyViewed.map(ra => {
+                  {layout !== 'list' && recentDisplayItems.map(ra => {
                     const item   = ra.item || {}
                     const wb     = ra.winningBid || {}
                     const imgUrl = getItemImage(item)
@@ -2090,7 +2237,7 @@ export default function Browse() {
                 const offPct   = retail && bidAmt ? Math.round(100 * (1 - bidAmt / retail)) : null
                 const imgUrl   = getItemImage(item)
 
-                const cardSnipe = snipesMap.get(auction.id) || snipesMap.get(auction.handle)
+                const cardSnipe = mappedAuctionValue(snipesMap, auction)
                 const bidCount = auction.bidCount ?? auction.numberOfBids ?? auction.bid_count ?? 0
                 return (
                   <div
@@ -2219,7 +2366,7 @@ export default function Browse() {
                     const imgUrl   = getItemImage(item)
                     const loc      = auction.storeLocation
                     const locStr   = loc ? ([loc.city, loc.state].filter(Boolean).join(', ') || loc.name || '') : ''
-                    const rowSnipe = snipesMap.get(auction.id) || snipesMap.get(auction.handle)
+                    const rowSnipe = mappedAuctionValue(snipesMap, auction)
                     const bidCount = auction.bidCount ?? auction.numberOfBids ?? auction.bid_count ?? 0
 
                     return (
@@ -2339,7 +2486,7 @@ export default function Browse() {
           defaultSnipeSec={defaultSec}
           priceCache={priceCache}
           onClose={() => setDetailTarget(null)}
-          snipe={snipesMap.get(detailTarget.id) || snipesMap.get(detailTarget.handle) || null}
+          snipe={mappedAuctionValue(snipesMap, detailTarget)}
           watchlist={watchlist}
           onWatchToggle={handleWatchToggle}
           onSnipeCancel={async id => {

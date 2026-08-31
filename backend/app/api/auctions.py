@@ -46,16 +46,20 @@ def search_auctions(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    bw_session, _ = _get_bw_session(db, user, params.login_id)
+    bw_session, login = _get_bw_session(db, user, params.login_id)
     try:
         return fetch_active_auctions(
             bw_session,
             page=params.page,
             page_size=params.page_size,
+            search_after=params.search_after,
+            search_id=params.search_id,
             sort_by=params.sort_by,
             search=params.search,
             conditions=params.conditions or None,
-            auction_filters=params.auction_filters or None,
+            auction_filter=params.auction_filter,
+            watching=params.watching,
+            customer_id=login.customer_id or "",
             store_location_ids=params.store_location_ids or None,
             min_retail_price=params.min_retail_price,
             max_retail_price=params.max_retail_price,

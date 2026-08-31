@@ -81,6 +81,44 @@ def test_fetch_active_auctions_normalizes_legacy_newly_listed_sort_alias():
     assert session.calls[0]["json"]["sortBy"] == "NewArrivals"
 
 
+def test_fetch_active_auctions_sends_v1_search_cursor_for_next_page():
+    session = FakeSession([make_response(200, payload={"items": []})])
+    search_after = [1788220800000, "auction-24"]
+
+    fetch_active_auctions(
+        session,
+        page=2,
+        search_after=search_after,
+        search_id="search-session-1",
+    )
+
+    assert session.calls[0]["json"]["searchAfter"] == search_after
+    assert session.calls[0]["json"]["searchId"] == "search-session-1"
+
+
+def test_fetch_active_auctions_sends_supported_v1_filter():
+    session = FakeSession([make_response(200, payload={"items": []})])
+
+    fetch_active_auctions(session, auction_filter="EndsTomorrow")
+
+    assert session.calls[0]["json"]["filter"] == "EndsTomorrow"
+    assert "auctionFilters" not in session.calls[0]["json"]
+
+
+def test_fetch_active_auctions_uses_my_auctions_for_watched_items():
+    session = FakeSession([make_response(200, payload={"items": []})])
+
+    fetch_active_auctions(
+        session,
+        watching=True,
+        customer_id="customer-1",
+    )
+
+    assert session.calls[0]["url"].endswith("/Auctions/my-auctions")
+    assert session.calls[0]["json"]["filter"] == "Watching"
+    assert session.calls[0]["json"]["customerId"] == "customer-1"
+
+
 def test_fetch_active_auctions_retries_new_arrivals_with_fallback_sort():
     session = FakeSession(
         [

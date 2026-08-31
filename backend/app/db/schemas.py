@@ -175,10 +175,15 @@ class AuctionSearchParams(BaseModel):
     login_id: str
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=24, ge=1, le=100)
+    search_after: Optional[list[str | int | float | bool | None]] = Field(
+        default=None, max_length=10
+    )
+    search_id: Optional[str] = Field(default=None, max_length=200)
     sort_by: str = "EndingSoonest"
     search: str = Field(default="", max_length=500)
     conditions: list[str] = Field(default_factory=list)
-    auction_filters: list[str] = Field(default_factory=list)
+    auction_filter: Optional[str] = Field(default=None, max_length=50)
+    watching: bool = False
     store_location_ids: list[str] = Field(default_factory=list)
     min_retail_price: Optional[float] = None
     max_retail_price: Optional[float] = None

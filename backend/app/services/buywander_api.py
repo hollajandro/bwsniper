@@ -173,9 +173,7 @@ def fmt_time(secs: float) -> str:
 
 def get_auction(session: _requests.Session, handle: str) -> dict:
     if is_uuid(handle):
-        r = session.get(
-            f"{BW_SITE_API_BASE}/Auctions/by-auction/{handle}", timeout=10
-        )
+        r = session.get(f"{BW_SITE_API_BASE}/Auctions/by-auction/{handle}", timeout=10)
     else:
         r = session.get(f"{BW_SITE_API_BASE}/Auctions/{handle}", timeout=10)
     if r.status_code == 404:

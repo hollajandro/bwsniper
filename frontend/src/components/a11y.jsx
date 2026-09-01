@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -13,6 +13,7 @@ const FOCUSABLE_SELECTOR = [
 export function useDialogFocus(active, onClose) {
   const dialogRef = useRef(null)
   const previousFocusRef = useRef(null)
+  const closeDialog = useEffectEvent(() => onClose?.())
 
   useEffect(() => {
     if (!active) return undefined
@@ -29,7 +30,7 @@ export function useDialogFocus(active, onClose) {
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose?.()
+        closeDialog()
         return
       }
 
@@ -54,7 +55,7 @@ export function useDialogFocus(active, onClose) {
       document.body.style.overflow = ''
       previousFocusRef.current?.focus?.()
     }
-  }, [active, onClose])
+  }, [active])
 
   return dialogRef
 }

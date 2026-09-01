@@ -3,7 +3,12 @@ from types import SimpleNamespace
 import pytest
 import requests
 
-from app.services.buywander_api import fetch_active_auctions, fetch_cart_and_visits
+from app.services.buywander_api import (
+    bw_login,
+    fetch_active_auctions,
+    fetch_cart_and_visits,
+    validate_session,
+)
 
 
 class FakeSession:
@@ -13,6 +18,10 @@ class FakeSession:
 
     def post(self, url, json, timeout):
         self.calls.append({"url": url, "json": json, "timeout": timeout})
+        return self._responses.pop(0)
+
+    def get(self, url, timeout):
+        self.calls.append({"url": url, "timeout": timeout})
         return self._responses.pop(0)
 
 
@@ -32,6 +41,36 @@ def make_response(status_code, payload=None, body=""):
     )
 
 
+def test_bw_login_uses_current_versioned_auth_endpoint():
+    session = FakeSession([make_response(200, payload={"isSuccess": True})])
+
+    result = bw_login(session, "user@example.com", "password")
+
+    assert result == {"isSuccess": True}
+    assert session.calls == [
+        {
+            "url": "https://api.buywander.com/api/site/v1/ShopifyAuth/login",
+            "json": {"email": "user@example.com", "password": "password"},
+            "timeout": 10,
+        }
+    ]
+
+
+def test_validate_session_uses_current_versioned_customer_endpoint():
+    customer = {"id": "customer-1", "displayName": "Test User"}
+    session = FakeSession([make_response(200, payload=customer)])
+
+    result = validate_session(session)
+
+    assert result == customer
+    assert session.calls == [
+        {
+            "url": "https://api.buywander.com/api/site/v1/Customers/me",
+            "timeout": 8,
+        }
+    ]
+
+
 def test_fetch_active_auctions_normalizes_legacy_newly_listed_sort_alias():
     session = FakeSession([make_response(200, payload={"auctions": [{"id": "auction-1"}]})])
 
@@ -40,6 +79,44 @@ def test_fetch_active_auctions_normalizes_legacy_newly_listed_sort_alias():
     assert result == {"auctions": [{"id": "auction-1"}]}
     assert len(session.calls) == 1
     assert session.calls[0]["json"]["sortBy"] == "NewArrivals"
+
+
+def test_fetch_active_auctions_sends_v1_search_cursor_for_next_page():
+    session = FakeSession([make_response(200, payload={"items": []})])
+    search_after = [1788220800000, "auction-24"]
+
+    fetch_active_auctions(
+        session,
+        page=2,
+        search_after=search_after,
+        search_id="search-session-1",
+    )
+
+    assert session.calls[0]["json"]["searchAfter"] == search_after
+    assert session.calls[0]["json"]["searchId"] == "search-session-1"
+
+
+def test_fetch_active_auctions_sends_supported_v1_filter():
+    session = FakeSession([make_response(200, payload={"items": []})])
+
+    fetch_active_auctions(session, auction_filter="EndsTomorrow")
+
+    assert session.calls[0]["json"]["filter"] == "EndsTomorrow"
+    assert "auctionFilters" not in session.calls[0]["json"]
+
+
+def test_fetch_active_auctions_uses_my_auctions_for_watched_items():
+    session = FakeSession([make_response(200, payload={"items": []})])
+
+    fetch_active_auctions(
+        session,
+        watching=True,
+        customer_id="customer-1",
+    )
+
+    assert session.calls[0]["url"].endswith("/Auctions/my-auctions")
+    assert session.calls[0]["json"]["filter"] == "Watching"
+    assert session.calls[0]["json"]["customerId"] == "customer-1"
 
 
 def test_fetch_active_auctions_retries_new_arrivals_with_fallback_sort():

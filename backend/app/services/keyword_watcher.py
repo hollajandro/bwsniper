@@ -18,7 +18,7 @@ from collections import defaultdict
 from ..db.database import SessionLocal
 from ..db.models import BuyWanderLogin, UserConfig
 from ..utils.retry import with_retry
-from .buywander_api import create_bw_session, fetch_active_auctions
+from .buywander_api import auction_url, create_bw_session, fetch_active_auctions
 from . import notification_service
 
 log = logging.getLogger(__name__)
@@ -94,9 +94,7 @@ def _scan_once():
                         lambda: fetch_active_auctions(bw_session, **fetch_kwargs)
                     )
                     auctions = (
-                        result.get("auctions", [])
-                        if isinstance(result, dict)
-                        else result
+                        result.get("items", []) if isinstance(result, dict) else result
                     )
                 except Exception:
                     log.warning(
@@ -122,10 +120,7 @@ def _scan_once():
                     item = auction.get("item") or {}
                     title = item.get("title") or auction.get("handle", kw)
                     cur_bid = (auction.get("winningBid") or {}).get("amount", 0)
-                    handle = item.get("handle") or auction.get("handle", "")
-                    url = (
-                        f"https://www.buywander.com/auctions/{handle}" if handle else ""
-                    )
+                    url = auction_url(auction)
                     notification_service.notify_keyword_match(
                         cfg, kw, title, cur_bid, url
                     )

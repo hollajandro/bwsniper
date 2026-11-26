@@ -139,7 +139,8 @@ jobs:
       - name: Run linting and build with timeout
         run: |
           cd frontend
-          timeout 300 npm run lint || true
+          timeout 300 npm run lint
+          timeout 300 npm test
           timeout 600 npm run build
 
       - name: Set up Docker Buildx

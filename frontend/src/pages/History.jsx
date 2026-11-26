@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useApi } from '../hooks/useApi'
+import { buyWanderAuctionUrl } from '../utils/buywander'
 import { getAllImgs } from '../utils/images'
 import { DialogPanel } from '../components/a11y'
 
@@ -68,6 +69,7 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
   const retail    = item.price || item.retailPrice || 0
   const bids      = detail?.computedBidHistory || detail?.bidHistory || detail?.bids || []
   const sortedBids = [...bids].sort((a, b) => (b.amount || 0) - (a.amount || 0))
+  const url = buyWanderAuctionUrl({ ...record, ...detail })
 
   return (
     <div
@@ -143,10 +145,10 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
           </div>
 
           {/* Direct link */}
-          {record.url && (
-            <a href={record.url} target="_blank" rel="noreferrer"
+          {url && (
+            <a href={url} target="_blank" rel="noreferrer"
               className="block text-xs text-bw-blue hover:text-bw-blue/80 underline break-all">
-              {record.url}
+              {url}
             </a>
           )}
 
@@ -232,7 +234,7 @@ function HistoryDetailModal({ record, priceCache, onClose }) {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-800">
-          <a href={record.url} target="_blank" rel="noreferrer"
+          <a href={url} target="_blank" rel="noreferrer"
             className="btn btn-secondary w-full">
             Open in Browser ↗
           </a>

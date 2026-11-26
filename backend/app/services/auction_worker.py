@@ -20,6 +20,7 @@ from ..utils.retry import with_retry as _with_retry
 from ..utils.crypto import decrypt as _decrypt, encrypt as _encrypt
 from .bid_state import auction_shows_bid_applied, extract_http_error_detail
 from .buywander_api import (
+    auction_url,
     get_auction,
     place_bid,
     parse_dt,
@@ -359,7 +360,7 @@ class AuctionWorker(threading.Thread):
         auction_uuid = auction.get("id", self.handle)
         end_str = auction.get("endDate")
         end_time = parse_dt(end_str) if end_str else None
-        url = f"https://www.buywander.com/auctions/{item.get('handle', self.handle)}"
+        url = auction_url(auction)
 
         self._update_and_broadcast(
             fields={

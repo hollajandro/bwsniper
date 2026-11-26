@@ -39,6 +39,15 @@ describe('Browse auction merging', () => {
 })
 
 describe('Browse cursor pagination', () => {
+  it('uses the current structured cursor to continue or stop loading', () => {
+    const cursor = { searchType: 'Auctions', auctions: [1795309200000, 'auction-24'] }
+    expect(hasMoreAuctionResults({ cursor }, 1)).toBe(true)
+    expect(hasMoreAuctionResults({ cursor: null }, 1)).toBe(false)
+    expect(auctionSearchCursor({ cursor, searchId: 'search-1' })).toEqual({
+      cursor, searchAfter: null, searchId: 'search-1',
+    })
+  })
+
   it('uses the v1 hasNextPage flag instead of inferred page numbers', () => {
     expect(hasMoreAuctionResults({ hasNextPage: true, totalPages: 1 }, 1)).toBe(true)
     expect(hasMoreAuctionResults({ hasNextPage: false, totalPages: 20 }, 1)).toBe(false)
@@ -56,6 +65,7 @@ describe('Browse cursor pagination', () => {
     }
 
     expect(auctionSearchCursor(data)).toEqual({
+      cursor: null,
       searchAfter: data.nextSearchAfter,
       searchId: 'search-session-1',
     })

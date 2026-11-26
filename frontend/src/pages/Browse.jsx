@@ -13,9 +13,10 @@
  */
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useApi } from '../hooks/useApi'
+import { useApi, fmtApiError } from '../hooks/useApi'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
+import { buyWanderAuctionUrl } from '../utils/buywander'
 import { getAllImgs } from '../utils/images'
 import { DialogPanel, activateOnEnterOrSpace } from '../components/a11y'
 
@@ -132,11 +133,13 @@ export function appendUniqueAuctions(current = [], incoming = []) {
 
 export function hasMoreAuctionResults(data, page) {
   if (typeof data?.hasNextPage === 'boolean') return data.hasNextPage
+  if (data && Object.hasOwn(data, 'cursor')) return Boolean(data.cursor)
   return page < (data?.totalPages || 1)
 }
 
 export function auctionSearchCursor(data) {
   return {
+    cursor: data?.cursor || null,
     searchAfter: Array.isArray(data?.nextSearchAfter) ? data.nextSearchAfter : null,
     searchId: typeof data?.searchId === 'string' && data.searchId ? data.searchId : null,
   }
@@ -315,9 +318,8 @@ function fmtSecs(s) {
   return `${s}s`
 }
 
-function auctionUrl(auction) {
-  return auction.url
-    || (auction.id ? `https://www.buywander.com/auction/${auction.id}` : '')
+export function auctionUrl(auction) {
+  return buyWanderAuctionUrl(auction)
 }
 
 function createWatchSnapshot(auction) {
@@ -1193,12 +1195,14 @@ export default function Browse() {
   const [maxPrice, setMaxPrice]         = useState('')
 
   // Results
-  const [items, setItems]           = useState([])
+  const [{ items, watching: resultsAreWatched }, setResults] = useState({ items: [], watching: false })
+  const [searchError, setSearchError] = useState('')
   const [loading, setLoading]       = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore]       = useState(false)
   const pageRef    = useRef(1)
-  const searchCursorRef = useRef({ searchAfter: null, searchId: null })
+  const searchCursorRef = useRef(auctionSearchCursor(null))
+  const searchRequestRef = useRef(0)
   const sentinelRef  = useRef(null)
   const scrollerRef  = useRef(null)
   const priceCache = useRef({})  // auctionId → priceData, persists across modal open/close
@@ -1295,13 +1299,13 @@ export default function Browse() {
 
   const effectiveWatchlist = useMemo(() => {
     const keys = new Set(watchlist)
-    if (watchedMode) {
+    if (resultsAreWatched) {
       for (const auction of items) {
         for (const key of auctionIdentityKeys(auction)) keys.add(key)
       }
     }
     return keys
-  }, [items, watchedMode, watchlist])
+  }, [items, resultsAreWatched, watchlist])
 
   // Snipes
   const [snipes, setSnipes] = useState([])
@@ -1547,6 +1551,7 @@ export default function Browse() {
     page:               pg,
     search_after:       cursor.searchAfter || null,
     search_id:          cursor.searchId || null,
+    cursor:             cursor.cursor || null,
     sort_by:            sortBy,
     search:             apiQuery,  // quotes stripped; phrase filtering is client-side
     conditions,
@@ -1639,20 +1644,28 @@ export default function Browse() {
   // ── Fetch page 1, replace items (triggered by filter changes) ─────────────
   const fetchAuctions = useCallback(async () => {
     if (!loginId) return
+    const request = ++searchRequestRef.current
     pageRef.current = 1
-    searchCursorRef.current = { searchAfter: null, searchId: null }
+    searchCursorRef.current = auctionSearchCursor(null)
     setLoading(true)
+    setLoadingMore(false)
     setHasMore(false)
+    setSearchError('')
     try {
       const res = await post('/auctions/search', buildBody(1))
-      if (res.ok) {
-        const data = await res.json()
-        setItems(uniqueAuctions(data.items || []))
-        searchCursorRef.current = auctionSearchCursor(data)
-        setHasMore(hasMoreAuctionResults(data, 1))
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(fmtApiError(error, 'Failed to load auctions. Please try again.'))
       }
+      const data = await res.json()
+      if (request !== searchRequestRef.current) return
+      setResults({ items: uniqueAuctions(data.items || []), watching: watchedMode })
+      searchCursorRef.current = auctionSearchCursor(data)
+      setHasMore(hasMoreAuctionResults(data, 1))
+    } catch (error) {
+      if (request === searchRequestRef.current) setSearchError(error.message || 'Failed to load auctions.')
     } finally {
-      setLoading(false)
+      if (request === searchRequestRef.current) setLoading(false)
     }
   }, [loginId, watchedMode, buildBody, post])
 
@@ -1663,18 +1676,25 @@ export default function Browse() {
     if (!hasMore || loading || loadingMore) return
     const nextPage = pageRef.current + 1
     const cursor = searchCursorRef.current
+    const request = searchRequestRef.current
     setLoadingMore(true)
+    setSearchError('')
     try {
       const res = await post('/auctions/search', buildBody(nextPage, cursor))
-      if (res.ok) {
-        const data = await res.json()
-        setItems(prev => appendUniqueAuctions(prev, data.items || []))
-        pageRef.current = nextPage
-        searchCursorRef.current = auctionSearchCursor(data)
-        setHasMore(hasMoreAuctionResults(data, nextPage))
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(fmtApiError(error, 'Failed to load more auctions. Please try again.'))
       }
+      const data = await res.json()
+      if (request !== searchRequestRef.current) return
+      setResults(prev => ({ items: appendUniqueAuctions(prev.items, data.items || []), watching: watchedMode }))
+      pageRef.current = nextPage
+      searchCursorRef.current = auctionSearchCursor(data)
+      setHasMore(hasMoreAuctionResults(data, nextPage))
+    } catch (error) {
+      if (request === searchRequestRef.current) setSearchError(error.message || 'Failed to load more auctions.')
     } finally {
-      setLoadingMore(false)
+      if (request === searchRequestRef.current) setLoadingMore(false)
     }
   }, [watchedMode, hasMore, loading, loadingMore, buildBody, post])
 
@@ -2026,6 +2046,9 @@ export default function Browse() {
 
         {/* Results */}
         <div ref={scrollerRef} className="flex-1 overflow-y-auto p-5">
+          {activeTab === TABS.LIVE && searchError && (
+            <p role="alert" className="mb-4 text-sm text-bw-red">{searchError}</p>
+          )}
           {activeTab === TABS.RECENT ? (
             /* ── Recently viewed tab (Feature 10) ────────────────────────── */
             recentlyViewed.length === 0 ? (

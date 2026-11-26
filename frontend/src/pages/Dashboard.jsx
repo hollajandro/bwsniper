@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useApi } from '../hooks/useApi'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
+import { buyWanderAuctionUrl } from '../utils/buywander'
 import { getAllImgs } from '../utils/images'
 import { DialogPanel } from '../components/a11y'
 
@@ -116,7 +117,11 @@ function SnipeDetailModal({ snipe, priceCache, onClose }) {
   const retail    = item.price || item.retailPrice || 0
   const bids      = detail?.computedBidHistory || detail?.bidHistory || detail?.bids || []
   const sortedBids = [...bids].sort((a, b) => (b.amount || 0) - (a.amount || 0))
-  const url       = snipe.url || (snipe.auction_uuid ? `https://www.buywander.com/auction/${snipe.auction_uuid}` : '')
+  const url       = buyWanderAuctionUrl({
+    ...snipe,
+    ...detail,
+    item: detail?.item || snipe.item,
+  })
 
   return (
     <div

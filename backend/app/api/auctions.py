@@ -5,6 +5,7 @@ These proxy through to the BuyWander API using a specific login's session.
 """
 
 import logging
+import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from ..db.database import get_db
 from ..db.models import User, BuyWanderLogin
 from ..db.schemas import AuctionSearchParams
 from ..dependencies import get_current_user
+from ..services.auth_service import BuyWanderCredentialDecryptError, reauth_bw_login
 from ..services.buywander_api import (
     create_bw_session,
     fetch_active_auctions,
@@ -47,13 +49,15 @@ def search_auctions(
     db: Session = Depends(get_db),
 ):
     bw_session, login = _get_bw_session(db, user, params.login_id)
-    try:
+
+    def fetch():
         return fetch_active_auctions(
             bw_session,
             page=params.page,
             page_size=params.page_size,
             search_after=params.search_after,
             search_id=params.search_id,
+            cursor=params.cursor,
             sort_by=params.sort_by,
             search=params.search,
             conditions=params.conditions or None,
@@ -64,6 +68,17 @@ def search_auctions(
             min_retail_price=params.min_retail_price,
             max_retail_price=params.max_retail_price,
         )
+
+    try:
+        try:
+            return fetch()
+        except requests.HTTPError as ex:
+            if ex.response is None or ex.response.status_code != 401:
+                raise
+            bw_session = reauth_bw_login(login, db)
+            return fetch()
+    except BuyWanderCredentialDecryptError as ex:
+        raise HTTPException(status_code=409, detail=str(ex))
     except Exception as ex:
         log.warning("BuyWander search error: %s", ex)
         raise HTTPException(

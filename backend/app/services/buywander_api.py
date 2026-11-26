@@ -11,7 +11,7 @@ import logging
 import re
 import json
 from datetime import datetime, timezone
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 from typing import Optional
 
 import requests as _requests
@@ -54,14 +54,21 @@ ALLOWED_SORT = frozenset(
     {
         "EndingSoonest",
         "NewArrivals",
-        "LowestBid",
-        "HighestBid",
-        "MostBids",
-        "HighestRetail",
-        "LowestRetail",
+        "CurrentPriceLowest",
+        "CurrentPriceHighest",
+        "BidsHighest",
+        "RetailPriceHighest",
+        "RetailPriceLowest",
     }
 )
-SORT_ALIASES = {"NewlyListed": "NewArrivals"}
+SORT_ALIASES = {
+    "NewlyListed": "NewArrivals",
+    "LowestBid": "CurrentPriceLowest",
+    "HighestBid": "CurrentPriceHighest",
+    "MostBids": "BidsHighest",
+    "HighestRetail": "RetailPriceHighest",
+    "LowestRetail": "RetailPriceLowest",
+}
 SORT_FALLBACKS = {"NewArrivals": "EndingSoonest"}
 
 _UUID_RE = re.compile(
@@ -132,6 +139,8 @@ def bw_login(session: _requests.Session, email: str, password: str) -> dict:
         raise ValueError("BuyWander email not verified — check your inbox.")
     r.raise_for_status()
     data = r.json()
+    if data.get("requireEmailVerification"):
+        raise ValueError("BuyWander email not verified — check your inbox.")
     if not data.get("isSuccess"):
         raise ValueError(data.get("errorMessage") or "BuyWander login failed.")
     return data
@@ -150,6 +159,14 @@ def extract_handle(url: str) -> str:
     if "auctionId" in qs:
         return qs["auctionId"][0]
     return parsed.path.rstrip("/").split("/")[-1]
+
+
+def auction_url(auction: dict) -> str:
+    """Build the site's UUID deep link, including for items without handles."""
+    if auction.get("id"):
+        return f"{BW_SITE_BASE}/auctions?{urlencode({'auctionId': auction['id']})}"
+    handle = (auction.get("item") or {}).get("handle") or auction.get("handle")
+    return f"{BW_SITE_BASE}/auctions/{handle}" if handle else ""
 
 
 # ── Generic helpers ──────────────────────────────────────────────────────────
@@ -231,7 +248,7 @@ def fetch_won_auctions(session: _requests.Session, customer_id: str) -> list:
             records.append(
                 {
                     "title": item.get("title", "Unknown"),
-                    "url": f"{BW_SITE_BASE}/auctions/{item.get('handle', '')}",
+                    "url": auction_url(a),
                     "auction_id": a.get("id", ""),
                     "won_at": a.get("endDate", ""),
                     "final_price": a.get("finalAmount") or wb.get("amount") or 0.0,
@@ -262,6 +279,7 @@ def fetch_active_auctions(
     store_location_ids: list | None = None,
     min_retail_price: float | None = None,
     max_retail_price: float | None = None,
+    cursor: dict | None = None,
 ) -> dict:
     """Browse all active auctions with filters.
 
@@ -291,6 +309,9 @@ def fetch_active_auctions(
         "watching": False,
         "additionalCategories": [],
     }
+    if not watching:
+        payload["includeBuyNow"] = False
+        payload["cursor"] = cursor
     if auction_filter:
         payload["filter"] = auction_filter
     if watching:
@@ -329,7 +350,7 @@ def fetch_active_auctions(
             timeout=15,
         )
         if r.ok:
-            return r.json()
+            return _normalise_search_response(r.json())
     if not r.ok:
         body = r.text[:300].strip()
         log.error(
@@ -340,7 +361,24 @@ def fetch_active_auctions(
             payload,
         )
         raise _requests.HTTPError(f"{r.status_code} {r.reason} — {body}", response=r)
-    return r.json()
+    return _normalise_search_response(r.json())
+
+
+def _normalise_search_response(data: dict) -> dict:
+    """Keep mixed catalog results compatible with auction-only consumers."""
+    if "items" not in data:
+        return data
+    auctions = []
+    for entry in data.get("items") or []:
+        if "auction" in entry:
+            if entry["auction"] is not None:
+                auctions.append(entry["auction"])
+        elif entry.get("id"):
+            auctions.append(entry)
+    result = {**data, "items": auctions}
+    if "cursor" in data:
+        result["hasNextPage"] = bool(data["cursor"])
+    return result
 
 
 def fetch_store_locations(session: _requests.Session) -> list:
@@ -578,9 +616,27 @@ def do_pay_checkout(
     r1.raise_for_status()
     step1 = r1.json() if r1.content else {}
 
-    # Already complete (free/discounted order or pre-authorised)
-    if step1.get("skipPayment") or step1.get("orderId"):
+    if step1.get("orderId"):
         return step1
+
+    if step1.get("skipPayment"):
+        confirmation = session.post(
+            f"{BW_SITE_API_BASE}/Customers/checkout/pay",
+            json={
+                **payload1,
+                "confirmFreeOrder": True,
+                "paymentIntentRecordId": step1.get("paymentIntentRecordId"),
+                "savePaymentMethod": False,
+            },
+            timeout=20,
+        )
+        confirmation.raise_for_status()
+        result = confirmation.json()
+        if not result.get("orderId"):
+            raise RuntimeError(
+                "BuyWander did not confirm the free order. Refresh the cart to check its status."
+            )
+        return result
 
     pi_record_id = step1.get("paymentIntentRecordId")
     client_secret = step1.get("clientSecret", "")

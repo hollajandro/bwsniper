@@ -250,8 +250,7 @@ def main() -> int:
             args.lint_timeout,
             "Type checking with mypy",
         )
-        if not mypy_result:
-            print("\n[WARN] Mypy found type issues, but continuing (non-blocking)")
+        results.append(mypy_result)
     else:
         print("\n[WARN] mypy not installed, skipping type checking")
 

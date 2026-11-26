@@ -3,11 +3,12 @@ backend/app/db/schemas.py — Pydantic models for request/response validation.
 """
 
 from __future__ import annotations
+import json
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, JsonValue, field_validator
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -179,6 +180,7 @@ class AuctionSearchParams(BaseModel):
         default=None, max_length=10
     )
     search_id: Optional[str] = Field(default=None, max_length=200)
+    cursor: Optional[dict[str, JsonValue]] = Field(default=None, max_length=10)
     sort_by: str = "EndingSoonest"
     search: str = Field(default="", max_length=500)
     conditions: list[str] = Field(default_factory=list)
@@ -187,6 +189,13 @@ class AuctionSearchParams(BaseModel):
     store_location_ids: list[str] = Field(default_factory=list)
     min_retail_price: Optional[float] = None
     max_retail_price: Optional[float] = None
+
+    @field_validator("cursor")
+    @classmethod
+    def validate_cursor(cls, v: Optional[dict[str, JsonValue]]):
+        if v is not None and len(json.dumps(v)) > 4096:
+            raise ValueError("cursor must not exceed 4096 characters")
+        return v
 
     @field_validator("sort_by")
     @classmethod

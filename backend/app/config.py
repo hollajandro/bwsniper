@@ -130,7 +130,7 @@ SESSION_REFRESH_INTERVAL_ITER = int(
 REMOTE_AGENT_POLL_INTERVAL_MS = int(os.getenv("REMOTE_AGENT_POLL_INTERVAL_MS", "3000"))
 
 # ── BuyWander upstream ───────────────────────────────────────────────────────
-BW_API_BASE = os.getenv("BW_API_BASE", "https://api.buywander.com")
+BW_API_BASE = os.getenv("BW_API_BASE", "https://bwapi.buywander.com")
 BW_SITE_BASE = os.getenv("BW_SITE_BASE", "https://www.buywander.com")
 BW_SESSION_HEADERS = {
     "User-Agent": (
